@@ -197,7 +197,12 @@ export default function AccountManagement() {
     }
   };
 
-  const handleResetPassword = async (id: number) => {
+  const handleResetPassword = async (id: number | null) => {
+    if (!id) {
+      setError('Invalid account ID');
+      return;
+    }
+
     if (!resetPassword) {
       setError('Password is required');
       return;
@@ -205,14 +210,22 @@ export default function AccountManagement() {
 
     try {
       setLoading(true);
-      await accountApi.updatePassword(id, { password: resetPassword });
+      console.log('Updating password for account:', id);
+      const response = await accountApi.updatePassword(id, { password: resetPassword });
+      console.log('Password update response:', response);
+      
       setSuccess('Password updated successfully');
       setResetPassword('');
       setEditingId(null);
       setShowResetPasswordModal(false);
       setError(null);
+      
+      // Refresh accounts list
+      await fetchAccounts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update password');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update password';
+      console.error('Password update error:', errorMessage, err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -466,8 +479,12 @@ export default function AccountManagement() {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleResetPassword(editingId)}
-                    disabled={loading}
+                    onClick={() => {
+                      if (editingId) {
+                        handleResetPassword(editingId);
+                      }
+                    }}
+                    disabled={loading || !resetPassword}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg transition"
                   >
                     {loading ? 'Saving...' : 'Update Password'}
