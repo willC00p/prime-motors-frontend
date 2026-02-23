@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import PasswordModal from '../components/PasswordModal';
+import { fetchRotatingPassword } from '../services/rotatingPasswordApi';
 import { useToast } from '../components/ToastProvider';
 import { modelLoanTemplateApi } from '../services/modelLoanTemplateApi';
 import type { ModelLoanTemplate } from '../types/LoanTemplate';
@@ -226,6 +228,15 @@ const Sales: React.FC = () => {
   // Edit modal state
   const [editOpen, setEditOpen] = useState(false);
   const [editSale, setEditSale] = useState<Partial<Sale> & { id?: number } | null>(null);
+  // Password modal states
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingEditId, setPendingEditId] = useState<number | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [rotatingPassword, setRotatingPassword] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRotatingPassword().then(setRotatingPassword).catch(() => setRotatingPassword(null));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -347,9 +358,14 @@ const Sales: React.FC = () => {
     });
   }, [visibleSales, searchQuery, branches]);
 
-  // Open edit modal and preload with server data
+  // Open edit modal and preload with server data, require password
   const openEdit = async (saleId?: number) => {
     if (!saleId) return;
+    setPendingEditId(saleId);
+    setPasswordModalOpen(true);
+  };
+
+  async function doOpenEdit(saleId: number) {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/sales/${saleId}`);
@@ -362,7 +378,23 @@ const Sales: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  function handlePasswordSubmit(input: string) {
+    setPasswordError(null);
+    if (!rotatingPassword) {
+      setPasswordError('Password not loaded.');
+      return;
+    }
+    if (input === rotatingPassword && pendingEditId) {
+      setPasswordModalOpen(false);
+      setPasswordError(null);
+      doOpenEdit(pendingEditId);
+      setPendingEditId(null);
+    } else {
+      setPasswordError('Incorrect password.');
+    }
+  }
 
   const submitEdit = async () => {
     if (!editSale?.id) return;
@@ -863,6 +895,12 @@ const Sales: React.FC = () => {
 
   return (
     <div className="p-4">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => { setPasswordModalOpen(false); setPendingEditId(null); setPasswordError(null); }}
+        onSubmit={handlePasswordSubmit}
+        error={passwordError}
+      />
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Sales Reports</h1>
         <div className="flex gap-2">

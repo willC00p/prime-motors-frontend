@@ -6,6 +6,8 @@ import {
 } from 'recharts';
 import DetailModal from '../components/DetailModal';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { fetchRotatingPassword } from '../services/rotatingPasswordApi';
 
 interface DashboardData {
   topAgents: Array<{agent: string; amount: number}>;
@@ -64,6 +66,8 @@ type ModalContent = {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [rotatingPassword, setRotatingPassword] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -99,17 +103,19 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         const response = await fetchApi<DashboardData>('/dashboard');
-        console.log('Dashboard sourceData:', response.sourceData);
         setData(response);
       } catch (e) {
-        console.error('Dashboard fetch error:', e);
         setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, []);
+    // Fetch rotating password if user is NSM/accounting
+    if (user && (user.role === 'nsm' || user.role === 'accounting')) {
+      fetchRotatingPassword().then(setRotatingPassword).catch(() => setRotatingPassword(null));
+    }
+  }, [user]);
 
   // Derive available months from branchMonthStats and default to latest
   const availableMonths = useMemo(() => {
@@ -172,8 +178,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-  <h1 className="text-2xl font-bold text-gray-900"><span className="neon-text">Sales & Inventory</span> Analytics Dashboard</h1>
-        <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-gray-900"><span className="neon-text">Sales & Inventory</span> Analytics Dashboard</h1>
+        <div className="flex flex-col items-end gap-2">
+          {/* Rotating password for NSM/accounting only */}
+          {user && (user.role === 'nsm' || user.role === 'accounting') && (
+            <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-2 rounded text-sm font-mono">
+              <span className="font-bold">Today's Edit Password:</span> {rotatingPassword || 'Loading...'}
+            </div>
+          )}
           {/* Prominent toggle for presentation mode (default ON) */}
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input

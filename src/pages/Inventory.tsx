@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '../components/ToastProvider';
 import { api } from '../services/api';
+import PasswordModal from '../components/PasswordModal';
+import { fetchRotatingPassword } from '../services/rotatingPasswordApi';
 
 export interface Branch { id: number; name: string; address: string; }
 interface Item {
@@ -55,6 +57,8 @@ interface InventoryItem {
   date_received: string;
   dr_no?: string;
   si_no?: string;
+  si_photo_url?: string;
+  si_photo_key?: string;
   cost: number;
   srp?: number;
   beginning_qty?: number;
@@ -130,6 +134,16 @@ const Inventory: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('all-time');
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Password modal states
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState<(() => Promise<void>) | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [rotatingPassword, setRotatingPassword] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRotatingPassword().then(setRotatingPassword).catch(() => setRotatingPassword(null));
+  }, []);
   
   // Constants for inventory status
   const LOW_STOCK_THRESHOLD = 5;
@@ -1042,16 +1056,35 @@ const Inventory: React.FC = () => {
 
   // Open modal for add/edit
   function openModal(item?: InventoryItem) {
-    setEditId(item?.id ?? null);
-    // Ensure color is included when editing
-    setForm(item ? {
-      ...item,
-      color: item.color || ''  // Always ensure color is defined
-    } : emptyForm);
-    setModalOpen(true);
-  setError(null);
-  // hide any previous toast by showing nothing (no-op)
-  setSuccess(null);
+    // Require password before allowing edit/create
+    setPendingSubmission(() => () => {
+      setEditId(item?.id ?? null);
+      setForm(item ? {
+        ...item,
+        color: item.color || ''
+      } : emptyForm);
+      setModalOpen(true);
+      setError(null);
+      setSuccess(null);
+    });
+    setPasswordModalOpen(true);
+  }
+  function handlePasswordSubmit(input: string) {
+    setPasswordError(null);
+    if (!rotatingPassword) {
+      setPasswordError('Password not loaded.');
+      return;
+    }
+    if (input === rotatingPassword) {
+      setPasswordModalOpen(false);
+      setPasswordError(null);
+      if (pendingSubmission) {
+        pendingSubmission();
+        setPendingSubmission(null);
+      }
+    } else {
+      setPasswordError('Incorrect password.');
+    }
   }
 
   // Open units modal
@@ -1081,11 +1114,25 @@ const Inventory: React.FC = () => {
     return sum + unitCount;
   }, 0);
 
-  // Submit form
+  // Submit form - now shows password modal
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    
+    // Validate required fields first
+    if (!form.branch_id || !form.item_id) {
+      setError('Branch and Item are required');
+      return;
+    }
+    
+    // Show password modal with a callback that includes the password
+    setPendingSubmission(() => async (password: string) => doSubmit(password));
+    setPasswordModalOpen(true);
+  }
+
+  // Actual submission logic that accepts password
+  async function doSubmit(editPassword: string = '') {
     try {
       // Remove fields that belong to items table
       const { color, engine_no, chassis_no, si_photo_file, ...formData } = form;
@@ -1099,6 +1146,7 @@ const Inventory: React.FC = () => {
 
       const payload = {
         ...formData,
+        editPassword, // Include the password in the payload
         color: typeof form.color === 'string' ? form.color : '', // Always send color as string
         branch_id: formData.branch_id ? Number(formData.branch_id) : undefined,
         item_id: formData.item_id ? Number(formData.item_id) : undefined,
@@ -1182,6 +1230,9 @@ const Inventory: React.FC = () => {
       if (/prisma/i.test(msg) || /P200|PrismaClientKnownRequestError/.test(msg)) {
         return 'Server validation failed — please check required fields across tabs and try again.';
       }
+      if (/invalid.*password/i.test(msg) || /Edit password/i.test(msg)) {
+        return 'Invalid edit password. Please try again.';
+      }
       if (msg.length > 300) return msg.slice(0, 300) + '...';
       return msg || 'Failed to save inventory';
     } catch (ex) {
@@ -1207,6 +1258,12 @@ const Inventory: React.FC = () => {
 
   return (
     <div className="p-4">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => { setPasswordModalOpen(false); setPendingSubmission(null); setPasswordError(null); }}
+        onSubmit={handlePasswordSubmit}
+        error={passwordError}
+      />
       {/* Test element to verify Tailwind */}
      
 
@@ -1559,7 +1616,6 @@ const Inventory: React.FC = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SI No</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Engine No</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chassis No</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SI Photo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
               </>
             )}
@@ -1722,35 +1778,6 @@ const Inventory: React.FC = () => {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.si_no || '-'}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.engine_no || item.vehicle_units?.[0]?.engine_no || '-'}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.chassis_no || item.vehicle_units?.[0]?.chassis_no || '-'}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-center">
-                        {item.si_photo_url ? (
-                          <button
-                            onClick={() => {
-                              const modal = document.createElement('div');
-                              modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-                              const content = document.createElement('div');
-                              content.className = 'bg-white rounded-lg p-6 max-w-2xl w-full';
-                              content.innerHTML = `
-                                <h2 class="text-xl font-bold mb-4">SI Photo</h2>
-                                <div class="mb-4">
-                                  ${item.si_photo_url.endsWith('.pdf') 
-                                    ? `<a href="${item.si_photo_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">📄 View PDF</a>`
-                                    : `<img src="${item.si_photo_url}" alt="SI Photo" class="max-w-full h-auto rounded" />`
-                                  }
-                                </div>
-                                <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Close</button>
-                              `;
-                              modal.appendChild(content);
-                              document.body.appendChild(modal);
-                            }}
-                            className="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 py-1 rounded text-sm"
-                          >
-                            📷 View
-                          </button>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.remarks || '-'}</td>
                     </>
                   )}
@@ -2317,6 +2344,25 @@ const Inventory: React.FC = () => {
                       </div>
 
                       <div>
+                        <label className="block text-sm font-medium text-gray-700">SI Photo</label>
+                        <div className="mt-1">
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="border rounded px-2 py-1 w-full focus:ring-gray-500 focus:border-gray-500"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                (form as any).si_photo_file = file;
+                              }
+                            }}
+                            placeholder="Upload SI photo or document"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG, PDF (Max 10MB)</p>
+                        </div>
+                      </div>
+
+                      <div>
                         <label className="block text-sm font-medium text-gray-700">Remarks</label>
                         <div className="mt-1">
                           <textarea
@@ -2329,42 +2375,6 @@ const Inventory: React.FC = () => {
                           />
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h3 className="font-medium text-purple-800 mb-2">Sales Invoice (SI) Photo</h3>
-                    <p className="text-sm text-gray-600 mb-4">Upload a photo or document of the sales invoice.</p>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">SI Photo/Document</label>
-                      <div className="mt-1">
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="border rounded px-2 py-1 w-full focus:ring-purple-500 focus:border-purple-500"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              (form as any).si_photo_file = file;
-                            }
-                          }}
-                          placeholder="Upload SI photo or document"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG, PDF (Max 10MB)</p>
-                      </div>
-                      {form.si_photo_url && (
-                        <div className="mt-3 p-3 bg-white rounded border border-purple-200">
-                          <p className="text-sm text-gray-600 mb-2">Current SI Photo:</p>
-                          {form.si_photo_url.endsWith('.pdf') ? (
-                            <a href={form.si_photo_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm">
-                              📄 View PDF Document
-                            </a>
-                          ) : (
-                            <img src={form.si_photo_url} alt="SI Photo" className="max-w-xs h-auto rounded" />
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -2389,6 +2399,21 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Password Modal for edit/create operations */}
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => {
+          setPasswordModalOpen(false);
+          setPendingSubmission(null);
+        }}
+        onSubmit={async (password: string) => {
+          if (pendingSubmission) {
+            await pendingSubmission(password);
+          }
+        }}
+        action={editId ? 'edit' : 'create'}
+      />
     </div>
   );
 }
