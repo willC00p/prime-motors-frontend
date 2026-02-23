@@ -1559,6 +1559,7 @@ const Inventory: React.FC = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SI No</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Engine No</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chassis No</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SI Photo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
               </>
             )}
@@ -1721,6 +1722,35 @@ const Inventory: React.FC = () => {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.si_no || '-'}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.engine_no || item.vehicle_units?.[0]?.engine_no || '-'}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.chassis_no || item.vehicle_units?.[0]?.chassis_no || '-'}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-center">
+                        {item.si_photo_url ? (
+                          <button
+                            onClick={() => {
+                              const modal = document.createElement('div');
+                              modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                              const content = document.createElement('div');
+                              content.className = 'bg-white rounded-lg p-6 max-w-2xl w-full';
+                              content.innerHTML = `
+                                <h2 class="text-xl font-bold mb-4">SI Photo</h2>
+                                <div class="mb-4">
+                                  ${item.si_photo_url.endsWith('.pdf') 
+                                    ? `<a href="${item.si_photo_url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">📄 View PDF</a>`
+                                    : `<img src="${item.si_photo_url}" alt="SI Photo" class="max-w-full h-auto rounded" />`
+                                  }
+                                </div>
+                                <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Close</button>
+                              `;
+                              modal.appendChild(content);
+                              document.body.appendChild(modal);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 py-1 rounded text-sm"
+                          >
+                            📷 View
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.remarks || '-'}</td>
                     </>
                   )}
@@ -2299,6 +2329,42 @@ const Inventory: React.FC = () => {
                           />
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <h3 className="font-medium text-purple-800 mb-2">Sales Invoice (SI) Photo</h3>
+                    <p className="text-sm text-gray-600 mb-4">Upload a photo or document of the sales invoice.</p>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">SI Photo/Document</label>
+                      <div className="mt-1">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="border rounded px-2 py-1 w-full focus:ring-purple-500 focus:border-purple-500"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              (form as any).si_photo_file = file;
+                            }
+                          }}
+                          placeholder="Upload SI photo or document"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG, PDF (Max 10MB)</p>
+                      </div>
+                      {form.si_photo_url && (
+                        <div className="mt-3 p-3 bg-white rounded border border-purple-200">
+                          <p className="text-sm text-gray-600 mb-2">Current SI Photo:</p>
+                          {form.si_photo_url.endsWith('.pdf') ? (
+                            <a href={form.si_photo_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm">
+                              📄 View PDF Document
+                            </a>
+                          ) : (
+                            <img src={form.si_photo_url} alt="SI Photo" className="max-w-xs h-auto rounded" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
