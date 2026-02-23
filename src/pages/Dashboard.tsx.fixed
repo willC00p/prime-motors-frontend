@@ -1,0 +1,182 @@
+import { useEffect, useState } from 'react';
+import React from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, 
+  ResponsiveContainer, CartesianGrid, Legend, ComposedChart,
+  Area, Line, Brush
+} from 'recharts';
+import DetailModal from '../components/DetailModal';
+import PDFButton from '../components/PDFButton';
+import { generateDashboardPDF } from '../utils/pdfGenerator';
+import { fetchApi } from '../services/api';
+
+export interface DashboardData {
+  topAgents: Array<{agent: string; amount: number}>;
+  topFmo: Array<{fmo: string; amount: number; count: number}>;
+  topBm: Array<{bm: string; amount: number; count: number}>;
+  topMechanic: Array<{mechanic: string; amount: number; count: number}>;
+  topBao: Array<{bao: string; amount: number; count: number}>;
+  branchData: Array<{branch: string; amount: number}>;
+  branchMonthStats: Record<string, Record<string, number>>;
+  ageData: Array<{group: string; amount: number}>;
+  areaData: Array<{area: string; amount: number}>;
+  topModels: Array<{
+    model: string;
+    brand: string;
+    total: number;
+    byAge: Array<{group: string; amount: number}>;
+    byArea: Array<{area: string; amount: number}>;
+  }>;
+  inventoryPie: Array<{status: string; value: number}>;
+  monthlyData: Array<{month: string; amount: number}>;
+  forecastData: Array<{
+    month: string;
+    amount?: number;
+    forecast?: number;
+    target: number;
+    isTarget?: boolean;
+  }>;
+  totalSales: number;
+  totalInventoryUnits: number;
+  inventoryStatus: {
+    available: number;
+    sold: number;
+    reserved?: number;
+  };
+}
+
+const COLORS = {
+  blue: ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#0369a1'],
+  green: ['#22c55e', '#4ade80', '#86efac'],
+  yellow: ['#eab308', '#facc15', '#fde047'],
+  red: ['#ef4444', '#f87171', '#fca5a5']
+};
+
+type ModalContent = {
+  title: string;
+  data: any;
+  type: 'agents' | 'branches' | 'models' | 'areas' | 'age' | 'officers';
+};
+
+const Dashboard: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<ModalContent | null>(null);
+  const [viewRange, setViewRange] = useState(24);
+  const [forecastRange, setForecastRange] = useState(16);
+  const [zoomDomain, setZoomDomain] = useState<{ start: number; end: number }>({ start: 0, end: 100 });
+  
+  const chartRefs = {
+    salesForecast: React.useRef<HTMLDivElement>(null),
+    branchSales: React.useRef<HTMLDivElement>(null),
+    topModels: React.useRef<HTMLDivElement>(null),
+    ageDistribution: React.useRef<HTMLDivElement>(null),
+    salesOfficers: React.useRef<HTMLDivElement>(null)
+  };
+
+  const [data, setData] = useState<DashboardData>({
+    topAgents: [],
+    topFmo: [],
+    topBm: [],
+    topMechanic: [],
+    topBao: [],
+    branchData: [],
+    branchMonthStats: {},
+    ageData: [],
+    areaData: [],
+    topModels: [],
+    inventoryPie: [],
+    monthlyData: [],
+    forecastData: [],
+    totalSales: 0,
+    totalInventoryUnits: 0,
+    inventoryStatus: {
+      available: 0,
+      sold: 0
+    }
+  });
+
+  const fetchData = async (forecastMonths = forecastRange) => {
+    setLoading(true);
+    try {
+      const response = await fetchApi<DashboardData>(`/dashboard?forecastMonths=${forecastMonths}&viewRange=${viewRange}`);
+      setData(response);
+    } catch (e) {
+      console.error('Dashboard fetch error:', e);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [viewRange]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-lg">Loading dashboard data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        {error}
+      </div>
+    );
+  }
+
+  const handleGeneratePDF = async () => {
+    setPdfLoading(true);
+    try {
+      const chartElements: { [key: string]: HTMLElement } = {};
+      Object.entries(chartRefs).forEach(([key, ref]) => {
+        if (ref.current) {
+          chartElements[key] = ref.current;
+        }
+      });
+      await generateDashboardPDF(data, chartElements);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Sales & Inventory Analytics Dashboard
+        </h1>
+        <PDFButton 
+          loading={pdfLoading}
+          onClick={handleGeneratePDF}
+        />
+      </div>
+
+      {modalContent && (
+        <DetailModal
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setModalContent(null);
+          }}
+          title={modalContent.title}
+          data={modalContent.data}
+          type={modalContent.type}
+        />
+      )}
+
+      {/* Add your existing dashboard content here */}
+      {/* Make sure to properly nest and close all JSX elements */}
+    </div>
+  );
+};
+
+export default Dashboard;

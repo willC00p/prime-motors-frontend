@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal reset to let Tailwind work properly */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Neon theme helpers */
+.neon-text {
+  color: #39FF14;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.9), 0 0 16px rgba(57, 255, 20, 0.6);
+}
+.neon-border {
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.6), inset 0 0 6px rgba(57, 255, 20, 0.35);
+}
+.neon-text {
+  color: #39FF14; /* crisp neon color, no glow */
+  text-shadow: none;
+}
+.neon-border {
+  border: 1px solid rgba(57, 255, 20, 0.35); /* subtle outline, no glow */
+  box-shadow: none;
+}
+.neon-bg {
+  background-color: rgba(57, 255, 20, 0.06); /* soft tint instead of gradient glow */
+}
+.neon-glow {
+  filter: none; /* remove drop-shadow glow */
+}

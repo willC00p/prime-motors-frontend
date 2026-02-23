@@ -1,0 +1,96 @@
+import { useEffect, useState } from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, 
+  ResponsiveContainer, CartesianGrid, Legend, ComposedChart,
+  Area, Line, Brush
+} from 'recharts';
+import DetailModal from '../components/DetailModal';
+import PDFButton from '../components/PDFButton';
+import { generateDashboardPDF } from '../utils/pdfGenerator';
+import { fetchApi } from '../services/api';
+
+// ... (keep all the existing interface definitions)
+
+export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<ModalContent | null>(null);
+  const [viewRange, setViewRange] = useState(24); // Show 2 years of history
+  const [forecastRange, setForecastRange] = useState(16); // Show forecast through end of year and beyond
+  const [zoomDomain, setZoomDomain] = useState<{ start: number; end: number }>({ start: 0, end: 100 });
+  
+  // References for chart elements
+  const chartRefs = {
+    salesForecast: React.useRef<HTMLDivElement>(null),
+    branchSales: React.useRef<HTMLDivElement>(null),
+    topModels: React.useRef<HTMLDivElement>(null),
+    ageDistribution: React.useRef<HTMLDivElement>(null),
+    salesOfficers: React.useRef<HTMLDivElement>(null)
+  };
+
+  // ... (keep all the existing state and functions)
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-lg">Loading dashboard data...</div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      {error}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Sales & Inventory Analytics Dashboard</h1>
+        <PDFButton 
+          loading={pdfLoading}
+          onClick={async () => {
+            setPdfLoading(true);
+            try {
+              const chartElements: { [key: string]: HTMLElement } = {};
+              Object.entries(chartRefs).forEach(([key, ref]) => {
+                if (ref.current) {
+                  chartElements[key] = ref.current;
+                }
+              });
+              await generateDashboardPDF(data, chartElements);
+            } catch (error) {
+              console.error('Error generating PDF:', error);
+            } finally {
+              setPdfLoading(false);
+            }
+          }}
+        />
+      </div>
+
+      {/* ... (keep all the existing JSX but add refs to the chart containers) */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100" ref={chartRefs.salesForecast}>
+        {/* Sales Performance & Forecast content */}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100" ref={chartRefs.branchSales}>
+        {/* Branch Sales content */}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100" ref={chartRefs.topModels}>
+        {/* Top Models content */}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100" ref={chartRefs.ageDistribution}>
+        {/* Age Distribution content */}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100" ref={chartRefs.salesOfficers}>
+        {/* Sales Officers content */}
+      </div>
+
+      {/* ... (keep all the remaining JSX) */}
+    </div>
+  );
+}
