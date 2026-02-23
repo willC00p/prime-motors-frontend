@@ -606,9 +606,12 @@ export default function AccountManagement() {
                         </button>
                         <button
                           onClick={() => {
+                            console.log('Reset password button clicked');
+                            setShowForm(false);
                             setEditingId(account.id);
                             setShowResetPasswordModal(true);
                             setResetPassword('');
+                            console.log('Modal state should be set');
                           }}
                           className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition"
                           title="Reset Password"
