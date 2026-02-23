@@ -1,0 +1,29 @@
+Instructions for updating all branch inventory seeders to use transferred_history:
+
+1. Find the transfer detection logic:
+   OLD: IF r.remarks IS NOT NULL AND trim(r.remarks) <> '' AND r.remarks NOT ILIKE '%CASH SALE%' THEN
+   NEW: IF COALESCE(r.purchased, 1) = 0 THEN
+
+2. Update duplicate check to include transferred_history:
+   OLD: IF (clean_engine IS NOT NULL AND EXISTS(SELECT 1 FROM vehicle_units v WHERE v.engine_no = clean_engine))
+   NEW: IF (clean_engine IS NOT NULL AND (EXISTS(SELECT 1 FROM vehicle_units v WHERE v.engine_no = clean_engine) OR EXISTS(SELECT 1 FROM transferred_history th WHERE th.engine_no = clean_engine)))
+
+3. Add IF trans_qty = 1 THEN block before existing INSERT INTO inventory_movements:
+   - Copy INSERT structure from seed_solana_inventory.sql
+   - Route to transferred_history table with all required fields
+   - ELSE block contains the existing inventory_movements + vehicle_units inserts
+
+4. Remove any vehicle_units.transferred field references (old pattern)
+
+Files to update:
+- seed_roxas_inventory.sql
+- seed_kamias_inventory.sql  
+- seed_sta_mesa_inventory.sql
+- seed_antipolo_inventory.sql
+- seed_aurora_inventory.sql
+- seed_baggao_inventory.sql
+- seed_cauayan_inventory.sql
+- seed_gattaran_inventory.sql
+- seed_ilagan_inventory.sql
+- seed_tumauini_inventory.sql
+- seed_tuguegarao_inventory_part2.sql

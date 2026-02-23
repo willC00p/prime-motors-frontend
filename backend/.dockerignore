@@ -1,0 +1,16 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+npm-debug.log*
+.DS_Store
+.vscode
+.idea
+*.backup
+prisma/migrations/*_migration_lock.toml
+scripts/
+db/
+loan_sales*.json
+migration.sql
+ensure_branch.sql

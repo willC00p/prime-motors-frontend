@@ -1,0 +1,283 @@
+import { Router, Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { catchAsync } from '../utils/catchAsync';
+
+const prisma = new PrismaClient();
+const router = Router();
+
+// Record a new loan payment
+router.post('/', catchAsync(async (req: Request, res: Response) => {
+    const { sale_id, paid_amount, payment_number, paid_date, status } = req.body;
+
+    // Validate required fields
+    if (!sale_id || !paid_amount || !payment_number) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Find and update the specific payment
+        const payment = await tx.loan_payments.updateMany({
+            where: { 
+                sale_id,
+                payment_no: payment_number,
+                status: 'pending'
+            },
+            data: {
+                paid_amount: parseFloat(paid_amount),
+                paid_date: new Date(paid_date),
+                status: 'paid'
+            }
+        });
+
+        if (payment.count === 0) {
+            throw new Error('Payment not found or already paid');
+        }
+
+        // Get all paid payments for this sale to calculate totals
+        const paidPaymentsQuery = await tx.loan_payments.findMany({
+            where: {
+                sale_id,
+                status: 'paid'
+            },
+            select: {
+                paid_amount: true
+            }
+        });
+
+        const totalPaid = paidPaymentsQuery.reduce((sum, p) => 
+            sum + Number(p.paid_amount || 0), 0);
+
+        const paidCount = paidPaymentsQuery.length;
+        const totalCount = await tx.loan_payments.count({
+            where: { sale_id }
+        });
+
+        // Update sales table status
+        const sale = await tx.sales.update({
+            where: { id: sale_id },
+            data: {
+                payment_status: paidCount >= totalCount ? 'completed' : 'ongoing'
+            }
+        });
+
+        return {
+            paidPayments: paidCount,
+            totalPaid,
+            paymentStatus: sale.payment_status
+        };
+    });
+
+    res.json(result);
+}));
+
+// Get all loan payments for a sale with full details
+router.get('/sale/:saleId', catchAsync(async (req, res) => {
+    const { saleId } = req.params;
+
+    const payments = await prisma.loan_payments.findMany({
+        where: { sale_id: parseInt(saleId) },
+        include: {
+            sales: {
+                select: {
+                    first_name: true,
+                    last_name: true,
+                    contact_no: true,
+                    loan_amount: true,
+                    terms: true,
+                    monthly_amortization: true,
+                    date_granted: true,
+                    maturity_date: true
+                }
+            }
+        },
+        orderBy: { payment_no: 'asc' }
+    });
+
+    // Calculate summary
+    const sale = await prisma.sales.findUnique({
+        where: { id: parseInt(saleId) }
+    });
+
+    if (!sale) {
+        return res.status(404).json({ error: 'Sale not found' });
+    }
+
+    const totalPaid = payments.reduce((sum, payment) => 
+        sum + Number(payment.paid_amount || 0), 0);
+    const remainingBalance = Number(sale.loan_amount || 0) - totalPaid;
+    const paidPayments = payments.filter(p => p.status === 'paid').length;
+
+    res.json({
+        payments,
+        summary: {
+            total_amount: sale.loan_amount,
+            total_paid: totalPaid,
+            remaining_balance: remainingBalance,
+            total_payments: payments.length,
+            paid_payments: paidPayments,
+            maturity_date: sale.maturity_date
+        }
+    });
+}));
+
+// Create loan payments for a sale
+router.post('/generate/:saleId', catchAsync(async (req, res) => {
+    const { saleId } = req.params;
+    
+    // Get the sale details
+    const sale = await prisma.sales.findUnique({
+        where: { id: parseInt(saleId) }
+    });
+
+    if (!sale) {
+        return res.status(404).json({ message: 'Sale not found' });
+    }
+
+    if (!sale.loan_amount || !sale.terms || !sale.monthly_amortization || !sale.date_granted) {
+        return res.status(400).json({ message: 'Sale does not have required loan details' });
+    }
+
+    // Delete any existing payments for this sale
+    await prisma.loan_payments.deleteMany({
+        where: { sale_id: parseInt(saleId) }
+    });
+
+    // Generate payment schedule
+    const payments = [];
+    let dueDate = new Date(sale.date_granted);
+
+    for (let i = 1; i <= sale.terms; i++) {
+        dueDate = new Date(dueDate);
+        dueDate.setMonth(dueDate.getMonth() + 1);
+
+        payments.push({
+            sale_id: sale.id,
+            payment_no: i,
+            due_date: dueDate,
+            amount: sale.monthly_amortization,
+            status: 'pending',
+            paid_amount: 0
+        });
+    }
+
+    // Create all payments in a transaction
+    await prisma.$transaction(
+        payments.map(payment => 
+            prisma.loan_payments.create({ data: payment })
+        )
+    );
+
+    res.json({ message: 'Payment schedule generated successfully' });
+}));
+
+// Update a payment
+router.patch('/:paymentId', catchAsync(async (req, res) => {
+    const { paymentId } = req.params;
+    const { paid_amount, paid_date } = req.body;
+
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+        // Update the payment
+        const payment = await tx.loan_payments.update({
+            where: { id: parseInt(paymentId) },
+            data: {
+                paid_amount: parseFloat(paid_amount),
+                paid_date: new Date(paid_date || Date.now()),
+                status: 'paid'
+            },
+            include: {
+                sales: true
+            }
+        });
+
+        // Get all payments for this sale
+        const allPayments = await tx.loan_payments.findMany({
+            where: { sale_id: payment.sale_id }
+        });
+
+        // Check if all payments are completed
+        const allPaid = allPayments.every(p => p.status === 'paid' || p.id === parseInt(paymentId));
+        
+        if (allPaid) {
+            // Update sale status to completed
+            await tx.sales.update({
+                where: { id: payment.sale_id },
+                data: { payment_status: 'completed' }
+            });
+        }
+
+        // Calculate total paid and remaining balance
+        const totalPaid = allPayments.reduce((sum, p) => 
+            sum + Number(p.paid_amount || 0), 0) + Number(paid_amount);
+        const remainingBalance = Number(payment.sales.loan_amount || 0) - totalPaid;
+
+        return {
+            ...payment,
+            total_paid: totalPaid,
+            remaining_balance: remainingBalance,
+            payment_status: allPaid ? 'completed' : 'ongoing'
+        };
+    });
+
+    res.json(result);
+}));
+
+// Get overdue payments
+router.get('/overdue', catchAsync(async (req, res) => {
+    const payments = await prisma.loan_payments.findMany({
+        where: {
+            due_date: {
+                lt: new Date()
+            },
+            status: 'pending'
+        },
+        include: {
+            sales: {
+                select: {
+                    first_name: true,
+                    last_name: true,
+                    contact_no: true
+                }
+            }
+        },
+        orderBy: {
+            due_date: 'asc'
+        }
+    });
+
+    res.json(payments);
+}));
+
+// Get upcoming payments
+router.get('/upcoming', catchAsync(async (req, res) => {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30); // Next 30 days
+
+    const payments = await prisma.loan_payments.findMany({
+        where: {
+            due_date: {
+                gte: startDate,
+                lte: endDate
+            },
+            status: 'pending'
+        },
+        include: {
+            sales: {
+                select: {
+                    first_name: true,
+                    last_name: true,
+                    contact_no: true
+                }
+            }
+        },
+        orderBy: {
+            due_date: 'asc'
+        }
+    });
+
+    res.json(payments);
+}));
+
+export default router;
