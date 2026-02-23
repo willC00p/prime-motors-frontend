@@ -68,7 +68,7 @@ export const api = {
   put: <T>(endpoint: string, data: any) =>
     fetchApi<T>(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
   
   delete: <T>(endpoint: string) =>

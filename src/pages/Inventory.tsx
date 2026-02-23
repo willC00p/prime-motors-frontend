@@ -1088,7 +1088,7 @@ const Inventory: React.FC = () => {
     setSuccess(null);
     try {
       // Remove fields that belong to items table
-      const { color, engine_no, chassis_no, ...formData } = form;
+      const { color, engine_no, chassis_no, si_photo_file, ...formData } = form;
 
       // Prepare units array for backend if purchased_qty > 0
       let units = form.vehicle_units || [];
@@ -1124,10 +1124,31 @@ const Inventory: React.FC = () => {
       console.log(debugText);
       // Do not spam debug payload to toasts in production; keep it in console for debugging
 
+      // Convert to FormData if file upload is needed
+      let requestBody: any = payload;
+      if (si_photo_file) {
+        const formDataObj = new FormData();
+        
+        // Append all payload fields
+        Object.entries(payload).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            // For vehicle_units array, send as JSON string
+            formDataObj.append(key, JSON.stringify(value));
+          } else if (value !== undefined && value !== null) {
+            formDataObj.append(key, String(value));
+          }
+        });
+        
+        // Append the file
+        formDataObj.append('si_photo', si_photo_file);
+        
+        requestBody = formDataObj;
+      }
+
       if (editId) {
-        await api.put(`/inventory/${editId}`, payload);
+        await api.put(`/inventory/${editId}`, requestBody);
       } else {
-        await api.post('/inventory', payload);
+        await api.post('/inventory', requestBody);
       }
 
       // Inform the user immediately
