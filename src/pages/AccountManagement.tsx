@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaCheck, FaTimes, FaLock, FaUnlock, FaInfoCircle } from 'react-icons/fa';
 import { accountApi } from '../services/accountApi';
+import { fetchApi } from '../utils/api';
 import type { Account, CreateAccountRequest, UpdateAccountRequest } from '../types/account';
 import type { UserRole } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
@@ -63,9 +64,7 @@ export default function AccountManagement() {
 
   const fetchBranches = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/branches');
-      if (!response.ok) throw new Error('Failed to fetch branches');
-      const data = await response.json();
+      const data = await fetchApi<Branch[]>('/branches');
       setBranches(data);
     } catch (err) {
       console.error('Failed to fetch branches:', err);
