@@ -605,13 +605,18 @@ export default function AccountManagement() {
                           <FaEdit />
                         </button>
                         <button
-                          onClick={() => {
-                            console.log('Reset password button clicked');
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Reset password button clicked - event fired');
+                            console.log('Current editingId:', editingId);
+                            console.log('Current showForm:', showForm);
                             setShowForm(false);
                             setEditingId(account.id);
                             setShowResetPasswordModal(true);
                             setResetPassword('');
-                            console.log('Modal state should be set');
+                            console.log('Modal state set - showResetPasswordModal should be true');
                           }}
                           className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition"
                           title="Reset Password"
