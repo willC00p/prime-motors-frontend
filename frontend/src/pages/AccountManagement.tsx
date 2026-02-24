@@ -44,6 +44,13 @@ export default function AccountManagement() {
   const canManage = user ? canManageAccounts(user.role) : false;
   const accessAllBranches = user ? canAccessAllBranches(user.role) : false;
 
+  // Debug logging
+  useEffect(() => {
+    console.log('AccountManagement component mounted/rendered');
+    console.log('showResetPasswordModal:', showResetPasswordModal);
+    console.log('editingId:', editingId);
+  }, [showResetPasswordModal, editingId]);
+
   useEffect(() => {
     if (!canManage) return;
     fetchAccounts();
@@ -237,6 +244,15 @@ export default function AccountManagement() {
     setEditingId(null);
     setShowPasswordField(false);
     setResetPassword('');
+  };
+
+  const openResetPasswordModal = (accountId: number) => {
+    console.log('openResetPasswordModal called with accountId:', accountId);
+    setShowForm(false);
+    setEditingId(accountId);
+    setShowResetPasswordModal(true);
+    setResetPassword('');
+    console.log('State updated - modal should appear');
   };
 
   const filteredAccounts = accounts.filter(account => {
@@ -606,18 +622,7 @@ export default function AccountManagement() {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Reset password button clicked - event fired');
-                            console.log('Current editingId:', editingId);
-                            console.log('Current showForm:', showForm);
-                            setShowForm(false);
-                            setEditingId(account.id);
-                            setShowResetPasswordModal(true);
-                            setResetPassword('');
-                            console.log('Modal state set - showResetPasswordModal should be true');
-                          }}
+                          onClick={() => openResetPasswordModal(account.id)}
                           className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition"
                           title="Reset Password"
                         >
