@@ -36,20 +36,12 @@ export default function AccountManagement() {
   const [filterRole, setFilterRole] = useState<UserRole | 'all'>('all');
   const [filterBranch, setFilterBranch] = useState<number | 'all'>('all');
   const [form, setForm] = useState<CreateAccountRequest>(emptyAccountForm);
-  const [showPasswordField, setShowPasswordField] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordAccountId, setResetPasswordAccountId] = useState<number | null>(null);
 
   // Check if user has account management access
   const canManage = user ? canManageAccounts(user.role) : false;
   const accessAllBranches = user ? canAccessAllBranches(user.role) : false;
-
-  // Debug logging
-  useEffect(() => {
-    console.log('AccountManagement component mounted/rendered');
-    console.log('showResetPasswordModal:', showResetPasswordModal);
-    console.log('editingId:', editingId);
-  }, [showResetPasswordModal, editingId]);
 
   useEffect(() => {
     if (!canManage) return;
@@ -70,14 +62,14 @@ export default function AccountManagement() {
     }
   };
 
-  const fetchBranches = async () => {
-    try {
-      const data = await fetchApi<Branch[]>('/branches');
-      setBranches(data);
-    } catch (err) {
-      console.error('Failed to fetch branches:', err);
-    }
-  };
+    const fetchBranches = async () => {
+      try {
+        const data = await fetchApi<Branch[]>('/branches');
+        setBranches(data);
+      } catch (err) {
+        console.error('Failed to fetch branches:', err);
+      }
+    };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -85,10 +77,6 @@ export default function AccountManagement() {
       ...prev,
       [name]: name === 'branchId' && value ? parseInt(value) : value || (name === 'branchId' ? undefined : value)
     }));
-  };
-
-  const handleResetPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setResetPassword(e.target.value);
   };
 
   const validateForm = () => {
@@ -161,7 +149,6 @@ export default function AccountManagement() {
       branchId: account.branchId
     });
     setShowForm(true);
-    setShowPasswordField(false);
   };
 
   const handleDelete = async (id: number) => {
@@ -204,12 +191,7 @@ export default function AccountManagement() {
     }
   };
 
-  const handleResetPassword = async (id: number | null) => {
-    if (!id) {
-      setError('Invalid account ID');
-      return;
-    }
-
+  const handleResetPassword = async (id: number) => {
     if (!resetPassword) {
       setError('Password is required');
       return;
@@ -217,21 +199,16 @@ export default function AccountManagement() {
 
     try {
       setLoading(true);
-      console.log('Updating password for account:', id);
-      const response = await accountApi.updatePassword(id, { password: resetPassword });
-      console.log('Password update response:', response);
+      await accountApi.updatePassword(id, { password: resetPassword });
       
       setSuccess('Password updated successfully');
       setResetPassword('');
-      setEditingId(null);
-      setShowResetPasswordModal(false);
+      setResetPasswordAccountId(null);
       setError(null);
       
-      // Refresh accounts list
       await fetchAccounts();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update password';
-      console.error('Password update error:', errorMessage, err);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -242,17 +219,7 @@ export default function AccountManagement() {
     setForm(emptyAccountForm);
     setShowForm(false);
     setEditingId(null);
-    setShowPasswordField(false);
     setResetPassword('');
-  };
-
-  const openResetPasswordModal = (accountId: number) => {
-    console.log('openResetPasswordModal called with accountId:', accountId);
-    setShowForm(false);
-    setEditingId(accountId);
-    setShowResetPasswordModal(true);
-    setResetPassword('');
-    console.log('State updated - modal should appear');
   };
 
   const filteredAccounts = accounts.filter(account => {
@@ -475,43 +442,38 @@ export default function AccountManagement() {
         )}
 
         {/* Password Reset Modal */}
-        {editingId && showResetPasswordModal && (
+        {resetPasswordAccountId && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full">
               <h2 className="text-2xl font-bold mb-4 text-gray-800">Reset Password</h2>
-              <p className="text-gray-600 mb-4">Enter new password for this account:</p>
-
+              
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
                   <input
                     type="password"
                     value={resetPassword}
-                    onChange={handleResetPasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      if (editingId) {
-                        handleResetPassword(editingId);
-                      }
-                    }}
+                    onClick={() => handleResetPassword(resetPasswordAccountId)}
                     disabled={loading || !resetPassword}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg transition"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg transition font-medium"
                   >
-                    {loading ? 'Saving...' : 'Update Password'}
+                    {loading ? 'Updating...' : 'Update'}
                   </button>
                   <button
                     onClick={() => {
+                      setResetPasswordAccountId(null);
                       setResetPassword('');
-                      setEditingId(null);
-                      setShowResetPasswordModal(false);
                     }}
-                    className="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg transition"
+                    className="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg transition font-medium"
                   >
                     Cancel
                   </button>
@@ -622,7 +584,7 @@ export default function AccountManagement() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => openResetPasswordModal(account.id)}
+                          onClick={() => setResetPasswordAccountId(account.id)}
                           className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition"
                           title="Reset Password"
                         >
