@@ -36,7 +36,6 @@ export default function AccountManagement() {
   const [filterRole, setFilterRole] = useState<UserRole | 'all'>('all');
   const [filterBranch, setFilterBranch] = useState<number | 'all'>('all');
   const [form, setForm] = useState<CreateAccountRequest>(emptyAccountForm);
-  const [showPasswordField, setShowPasswordField] = useState(false);
   const [resetPassword, setResetPassword] = useState('');
 
   // Check if user has account management access
@@ -77,10 +76,6 @@ export default function AccountManagement() {
       ...prev,
       [name]: name === 'branchId' && value ? parseInt(value) : value || (name === 'branchId' ? undefined : value)
     }));
-  };
-
-  const handleResetPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setResetPassword(e.target.value);
   };
 
   const validateForm = () => {
@@ -153,7 +148,6 @@ export default function AccountManagement() {
       branchId: account.branchId
     });
     setShowForm(true);
-    setShowPasswordField(false);
   };
 
   const handleDelete = async (id: number) => {
@@ -205,12 +199,16 @@ export default function AccountManagement() {
     try {
       setLoading(true);
       await accountApi.updatePassword(id, { password: resetPassword });
+      
       setSuccess('Password updated successfully');
       setResetPassword('');
-      setEditingId(null);
+      setResetPasswordAccountId(null);
       setError(null);
+      
+      await fetchAccounts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update password');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update password';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -220,7 +218,6 @@ export default function AccountManagement() {
     setForm(emptyAccountForm);
     setShowForm(false);
     setEditingId(null);
-    setShowPasswordField(false);
     setResetPassword('');
   };
 
@@ -333,18 +330,34 @@ export default function AccountManagement() {
                   />
                 </div>
 
-                {/* Password */}
-                {!editingId && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required={!editingId}
-                    />
+                {/* Password - Only show when editing */}
+                {editingId && (
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Reset Password</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={resetPassword}
+                          onChange={(e) => setResetPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingId && resetPassword) {
+                              handleResetPassword(editingId);
+                            }
+                          }}
+                          disabled={loading || !resetPassword}
+                          className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white rounded-lg transition font-medium"
+                        >
+                          {loading ? '...' : 'Reset'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -439,48 +452,6 @@ export default function AccountManagement() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* Password Reset Modal */}
-        {editingId && resetPassword !== '' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">Reset Password</h2>
-              <p className="text-gray-600 mb-4">Enter new password for this account:</p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                  <input
-                    type="password"
-                    value={resetPassword}
-                    onChange={handleResetPasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleResetPassword(editingId)}
-                    disabled={loading}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 rounded-lg transition"
-                  >
-                    {loading ? 'Saving...' : 'Update Password'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setResetPassword('');
-                      setEditingId(null);
-                    }}
-                    className="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-lg transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -583,16 +554,6 @@ export default function AccountManagement() {
                           title="Edit"
                         >
                           <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingId(account.id);
-                            setResetPassword('');
-                          }}
-                          className="p-2 text-yellow-600 hover:bg-yellow-100 rounded-lg transition"
-                          title="Reset Password"
-                        >
-                          🔑
                         </button>
                         <button
                           onClick={() => handleToggleStatus(account.id, account.isActive)}
