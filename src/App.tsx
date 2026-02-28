@@ -46,16 +46,10 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Dashboard routes */}
-            <Route index element={
-              <ProtectedRoute 
-                allowedRoles={dashboardRoles}
-                permission="reports"
-                requiresAllBranches
-              >
-                <Dashboard />
-              </ProtectedRoute>
-            } />
+            {/* Index route - goes to Inventory for all authenticated users */}
+            <Route index element={<Inventory />} />
+            
+            {/* Dashboard routes - only for authorized roles */}
             <Route path="dashboard" element={
               <ProtectedRoute 
                 allowedRoles={dashboardRoles}

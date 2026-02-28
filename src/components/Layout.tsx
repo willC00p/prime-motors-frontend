@@ -2,6 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { canManageAccounts } from '../utils/roleAccess';
+import type { UserRole } from '../types/auth';
 import {
   Menu as IconMenu,
   LayoutDashboard,
@@ -25,8 +26,13 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
+  const dashboardRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance', 'audit'];
+  const canAccessDashboard = user && dashboardRoles.includes(user.role as UserRole);
+
   const navItems = [
-    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ...(canAccessDashboard 
+      ? [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }]
+      : []),
     { to: '/inventory', label: 'Inventory', icon: Boxes },
     { to: '/reports', label: 'Reports', icon: FileSpreadsheet },
     { to: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
