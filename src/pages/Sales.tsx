@@ -1042,7 +1042,8 @@ const Sales: React.FC = () => {
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Branch</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Date</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                          <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">DR/SI No</th>
+                          <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">DR No</th>
+                          <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">SI No</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Agent</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Source</th>
                         </>
@@ -1119,7 +1120,8 @@ const Sales: React.FC = () => {
                               <td className="px-2 py-2">{branches.find(b => b.id === sale.branch_id)?.name || 'N/A'}</td>
                               <td className="px-2 py-2">{new Date(sale.date_sold).toLocaleDateString()}</td>
                               <td className="px-2 py-2">{sale.category_of_sales}</td>
-                              <td className="px-2 py-2">{sale.dr_no || sale.si_no}</td>
+                              <td className="px-2 py-2">{sale.dr_no}</td>
+                              <td className="px-2 py-2">{sale.si_no}</td>
                               <td className="px-2 py-2">{sale.agent}</td>
                               <td className="px-2 py-2">{sale.source_of_sales || ''}</td>
                             </>
