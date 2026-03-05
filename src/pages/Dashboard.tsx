@@ -184,18 +184,10 @@ export default function Dashboard() {
 
     try {
       setClearingData(true);
-      const response = await fetch('/api/admin/clear-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const result = await fetchApi('/admin/clear-data', {
+        method: 'POST'
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      
       setClearMessage(`✅ Data cleared successfully! ${JSON.stringify(result, null, 2)}`);
       setTimeout(() => setClearMessage(null), 5000);
       
