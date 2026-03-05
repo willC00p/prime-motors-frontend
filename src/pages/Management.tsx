@@ -60,6 +60,8 @@ const Management = () => {
     cost_of_purchase: ''
   });
   const [editingModel, setEditingModel] = useState<Model | null>(null);
+  const [deletingAllModels, setDeletingAllModels] = useState(false);
+  const [deleteModelMessage, setDeleteModelMessage] = useState<string | null>(null);
 
   // State for suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -224,6 +226,26 @@ const Management = () => {
     }
   };
 
+  const handleDeleteAllModels = async () => {
+    if (!window.confirm('⚠️  WARNING: This will delete ALL motorcycle models. This action cannot be undone. Are you sure?')) {
+      return;
+    }
+
+    try {
+      setDeletingAllModels(true);
+      const response = await api.post('/admin/delete-all-models', {});
+      setModels([]);
+      setDeleteModelMessage(`✅ ${JSON.stringify(response, null, 2)}`);
+      showToast({ type: 'success', message: 'All models deleted successfully' });
+      setTimeout(() => setDeleteModelMessage(null), 5000);
+    } catch (err) {
+      setDeleteModelMessage(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      showToast({ type: 'error', message: 'Failed to delete all models' });
+    } finally {
+      setDeletingAllModels(false);
+    }
+  };
+
   // Supplier CRUD operations
   const handleAddSupplier = async () => {
     try {
@@ -370,7 +392,21 @@ const Management = () => {
 
       {/* Models Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Models</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Models</h2>
+          <button
+            onClick={handleDeleteAllModels}
+            disabled={deletingAllModels || models.length === 0}
+            className="px-3 py-2 bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white rounded font-semibold text-sm"
+          >
+            {deletingAllModels ? '⏳ Deleting...' : '🗑️ Delete All Models'}
+          </button>
+        </div>
+        {deleteModelMessage && (
+          <div className={`p-3 rounded-lg border mb-4 ${deleteModelMessage.includes('❌') ? 'bg-red-50 border-red-300 text-red-700' : 'bg-green-50 border-green-300 text-green-700'}`}>
+            <pre className="text-sm whitespace-pre-wrap break-words font-mono">{deleteModelMessage}</pre>
+          </div>
+        )}
         <div className="flex gap-2 mb-4">
           <input className="border rounded px-3 py-2" placeholder="Search models, brand, item no, engine" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           <select className="border rounded px-3 py-2" value={brandFilter} onChange={e => setBrandFilter(e.target.value)}>
