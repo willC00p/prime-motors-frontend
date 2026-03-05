@@ -74,6 +74,8 @@ export default function Dashboard() {
   const [modalContent, setModalContent] = useState<ModalContent | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
+  const [clearingData, setClearingData] = useState(false);
+  const [clearMessage, setClearMessage] = useState<string | null>(null);
   // Start dashboard in presentation mode by default; user can toggle back.
   const [presentationMode, setPresentationMode] = useState<boolean>(true);
   const [data, setData] = useState<DashboardData>({
@@ -175,6 +177,38 @@ export default function Dashboard() {
     </div>
   );
 
+  const handleClearData = async () => {
+    if (!window.confirm('⚠️  WARNING: This will delete ALL models, inventory, and sales data. This action cannot be undone. Are you sure?')) {
+      return;
+    }
+
+    try {
+      setClearingData(true);
+      const response = await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setClearMessage(`✅ Data cleared successfully! ${JSON.stringify(result, null, 2)}`);
+      setTimeout(() => setClearMessage(null), 5000);
+      
+      // Refresh the dashboard data
+      const dashboardData = await fetchApi<DashboardData>('/dashboard');
+      setData(dashboardData);
+    } catch (err) {
+      setClearMessage(`❌ Error clearing data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setClearingData(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -204,8 +238,24 @@ export default function Dashboard() {
               Exit Presentation Mode
             </button>
           )}
+          {/* Admin: Clear Data Button */}
+          <button
+            onClick={handleClearData}
+            disabled={clearingData}
+            className="px-3 py-1 bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white rounded text-sm font-semibold"
+            title="Clear all models, inventory, and sales data"
+          >
+            {clearingData ? '⏳ Clearing...' : '🗑️ Clear Data'}
+          </button>
         </div>
       </div>
+      
+      {/* Clear Data Result Message */}
+      {clearMessage && (
+        <div className={`p-4 rounded-lg border ${clearMessage.includes('❌') ? 'bg-red-50 border-red-300 text-red-700' : 'bg-green-50 border-green-300 text-green-700'}`}>
+          <pre className="text-sm whitespace-pre-wrap break-words font-mono">{clearMessage}</pre>
+        </div>
+      )}
       
       {modalContent && (
         <DetailModal

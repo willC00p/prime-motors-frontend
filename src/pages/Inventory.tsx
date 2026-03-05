@@ -2345,7 +2345,30 @@ const Inventory: React.FC = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700">SI Photo</label>
-                        <div className="mt-1">
+                        
+                        {/* Show existing SI photo if available */}
+                        {editId && (form as any).si_photo_url && (
+                          <div className="mt-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-sm text-gray-600 mb-3">Current SI Photo:</p>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={(form as any).si_photo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 underline"
+                              >
+                                📄 View Current SI Photo
+                              </a>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">Click to open in new window</p>
+                          </div>
+                        )}
+                        
+                        {/* Upload/Replace section */}
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-gray-600 mb-2">
+                            {(form as any).si_photo_url ? 'Replace SI Photo' : 'Upload SI Photo'}
+                          </label>
                           <input
                             type="file"
                             accept="image/*,.pdf"
