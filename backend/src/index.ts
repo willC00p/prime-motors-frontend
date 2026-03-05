@@ -21,6 +21,7 @@ import ltoRegistrationRouter from './routes/ltoRegistration';
 import authRouter from './routes/authRoutes';
 import reportsRouter from './routes/reports';
 import accountsRouter from './routes/accounts';
+import adminRouter from './routes/admin';
 import { updateSale } from './controllers/salesController';
 console.log('[Bootstrap] typeof salesRouter:', typeof salesRouter);
 console.log('[Bootstrap] typeof updateSale:', typeof updateSale);
@@ -77,6 +78,9 @@ const apiRouter = express.Router();
 
 // Auth routes
 apiRouter.use('/auth', authRouter);
+
+// Admin routes
+apiRouter.use('/admin', adminRouter);
 
 // Account routes (HR management)
 apiRouter.use('/accounts', accountsRouter);
