@@ -212,6 +212,7 @@ const Sales: React.FC = () => {
   // Filters
   const [filterBranch, setFilterBranch] = useState<number | 'all'>('all');
   const [filterMonth, setFilterMonth] = useState<string>(''); // YYYY-MM, empty means all
+  const [filterSalesType, setFilterSalesType] = useState<string>('all'); // all, cash, inhouse, financing
   // Global search
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Per-row selections for model and units
@@ -300,9 +301,10 @@ const Sales: React.FC = () => {
     return (sales || []).filter((s) => {
       const byBranch = filterBranch === 'all' || s.branch_id === filterBranch;
       const byMonth = !filterMonth || monthKey(s.date_sold) === filterMonth;
-      return byBranch && byMonth;
+      const bySalesType = filterSalesType === 'all' || s.payment_method === filterSalesType;
+      return byBranch && byMonth && bySalesType;
     });
-  }, [sales, filterBranch, filterMonth]);
+  }, [sales, filterBranch, filterMonth, filterSalesType]);
 
   // Build a searchable text haystack for any sale (includes nested fields)
   const buildHaystack = (sale: Sale): string => {
@@ -969,6 +971,20 @@ const Sales: React.FC = () => {
                 onChange={(e) => setFilterMonth(e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Sales Type</label>
+              <select
+                className="border rounded px-2 py-1 text-sm bg-white"
+                value={filterSalesType}
+                onChange={(e) => setFilterSalesType(e.target.value)}
+                title="Filter by sales type (payment method)"
+              >
+                <option value="all">All Types</option>
+                <option value="cash">Cash</option>
+                <option value="inhouse">In-House</option>
+                <option value="financing">Financing</option>
+              </select>
+            </div>
             <div className="min-w-[16rem]">
               <label className="block text-xs text-gray-600 mb-1">Search</label>
               <input
@@ -979,7 +995,7 @@ const Sales: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="text-sm px-3 py-1 border rounded" onClick={() => { setFilterBranch('all'); setFilterMonth(''); }}>
+            <button className="text-sm px-3 py-1 border rounded" onClick={() => { setFilterBranch('all'); setFilterMonth(''); setFilterSalesType('all'); }}>
               Clear filters
             </button>
             <button
@@ -1044,7 +1060,7 @@ const Sales: React.FC = () => {
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Category</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">DR No</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">SI No</th>
-                          <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                          <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider hover:bg-blue-100 cursor-help" title="Sales person who closed the deal">Sale Closer</th>
                           <th className="px-2 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Source</th>
                         </>
                       )}
@@ -1289,7 +1305,7 @@ const Sales: React.FC = () => {
                 <input type="text" className="border rounded px-2 py-1 w-full" value={editSale.si_no || ''} onChange={e => setEditSale(s => ({ ...s!, si_no: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Agent</label>
+                <label className="block text-xs text-gray-600 mb-1">Sale Closer</label>
                 <input type="text" className="border rounded px-2 py-1 w-full" value={editSale.agent || ''} onChange={e => setEditSale(s => ({ ...s!, agent: e.target.value }))} />
               </div>
               <div>
@@ -1637,7 +1653,7 @@ const Sales: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Agent</label>
+                    <label className="block text-sm font-medium text-gray-700">Sale Closer</label>
                     <input
                       type="text"
                       className="mt-1 border rounded px-2 py-1 w-full"
