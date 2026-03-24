@@ -1124,7 +1124,7 @@ const Inventory: React.FC = () => {
     return sum + unitCount;
   }, 0);
 
-  // Submit form - now shows password modal
+  // Submit form - only show password modal for editing, not for creating
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -1136,9 +1136,14 @@ const Inventory: React.FC = () => {
       return;
     }
     
-    // Show password modal with a callback that includes the password
-    setPendingSubmission(() => async (password: string) => doSubmit(password));
-    setPasswordModalOpen(true);
+    if (editId) {
+      // Editing: require password
+      setPendingSubmission(() => async (password: string) => doSubmit(password));
+      setPasswordModalOpen(true);
+    } else {
+      // Creating: no password needed
+      await doSubmit('');
+    }
   }
 
   // Actual submission logic that accepts password
