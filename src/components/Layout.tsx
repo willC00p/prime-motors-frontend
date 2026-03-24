@@ -31,7 +31,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     ...(canAccessDashboard 
-      ? [{ to: '/', label: 'Dashboard', icon: LayoutDashboard }]
+      ? [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }]
       : []),
     { to: '/inventory', label: 'Inventory', icon: Boxes },
     { to: '/reports', label: 'Reports', icon: FileSpreadsheet },
