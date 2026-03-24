@@ -1056,18 +1056,28 @@ const Inventory: React.FC = () => {
 
   // Open modal for add/edit
   function openModal(item?: InventoryItem) {
-    // Require password before allowing edit/create
-    setPendingSubmission(() => () => {
-      setEditId(item?.id ?? null);
-      setForm(item ? {
-        ...item,
-        color: item.color || ''
-      } : emptyForm);
+    // Only require password for editing existing items, not for creating new ones
+    if (item) {
+      // Editing: require password
+      setPendingSubmission(() => () => {
+        setEditId(item.id);
+        setForm({
+          ...item,
+          color: item.color || ''
+        });
+        setModalOpen(true);
+        setError(null);
+        setSuccess(null);
+      });
+      setPasswordModalOpen(true);
+    } else {
+      // Creating: no password required
+      setEditId(null);
+      setForm(emptyForm);
       setModalOpen(true);
       setError(null);
       setSuccess(null);
-    });
-    setPasswordModalOpen(true);
+    }
   }
   function handlePasswordSubmit(input: string) {
     setPasswordError(null);
