@@ -90,9 +90,20 @@ export const cibiApi = {
     const issues: string[] = [];
     const strengths: string[] = [];
 
-    const { monthly_income, estimated_monthly_expenses, existing_loan, previous_loans_status, credit_standing, capacity_to_pay } = params;
+    // Safe number conversion - handles strings, null, undefined, objects
+    const toNumber = (val: any): number => {
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      if (typeof val === 'string') {
+        const parsed = parseFloat(val);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      return 0;
+    };
 
-    // Income Analysis
+    const monthly_income = toNumber(params.monthly_income);
+    const estimated_monthly_expenses = toNumber(params.estimated_monthly_expenses);
+    const { existing_loan, previous_loans_status, credit_standing } = params;
+    const capacity_to_pay = toNumber(params.capacity_to_pay);
     if (monthly_income && monthly_income > 0) {
       strengths.push(`Stable monthly income of ₱${monthly_income.toFixed(2)}`);
     } else {
