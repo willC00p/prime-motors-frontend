@@ -83,7 +83,7 @@ export const cibiApi = {
   },
 
   // Generate investigation findings
-  generateFindings: async (params: any) => {
+  generateFindings: (params: any) => {
     // This is a utility function that generates findings on the frontend
     // based on the parameters provided
     const findings: string[] = [];

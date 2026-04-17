@@ -96,7 +96,7 @@ export const CIBIApplicationPage: React.FC = () => {
   // Auto-generate investigation findings when relevant fields change
   useEffect(() => {
     const autoGenerateFindings = () => {
-      const findings = cibiApi.generateFindings({
+      const result = cibiApi.generateFindings({
         monthly_income: formData.monthly_income,
         estimated_monthly_expenses: formData.estimated_monthly_expenses,
         existing_loan: formData.existing_loan,
@@ -107,7 +107,8 @@ export const CIBIApplicationPage: React.FC = () => {
 
       setFormData((prev) => ({
         ...prev,
-        investigation_findings: findings,
+        investigation_findings: result.findings,
+        system_recommendation: result.system_recommendation,
       }));
     };
 
