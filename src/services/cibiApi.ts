@@ -76,4 +76,78 @@ export const cibiApi = {
       body: JSON.stringify({ status }),
     });
   },
+
+  // Models
+  getModels: async () => {
+    return fetchApi('/api/cibi/models');
+  },
+
+  // Generate investigation findings
+  generateFindings: async (params: any) => {
+    // This is a utility function that generates findings on the frontend
+    // based on the parameters provided
+    const findings: string[] = [];
+    const issues: string[] = [];
+    const strengths: string[] = [];
+
+    const { monthly_income, estimated_monthly_expenses, existing_loan, previous_loans_status, credit_standing, capacity_to_pay } = params;
+
+    // Income Analysis
+    if (monthly_income && monthly_income > 0) {
+      strengths.push(`Stable monthly income of ₱${monthly_income.toFixed(2)}`);
+    } else {
+      issues.push("No verifiable income source");
+    }
+
+    // Expense Analysis
+    if (estimated_monthly_expenses && monthly_income && estimated_monthly_expenses < monthly_income * 0.7) {
+      strengths.push("Reasonable monthly expenses relative to income");
+    } else if (estimated_monthly_expenses && monthly_income && estimated_monthly_expenses >= monthly_income) {
+      issues.push("Estimated expenses exceed or match income");
+    }
+
+    // Loan History
+    if (previous_loans_status === "Paid") {
+      strengths.push("Good history of loan payment");
+    } else if (previous_loans_status === "Defaulted") {
+      issues.push("History of loan default");
+    } else if (previous_loans_status === "Unpaid") {
+      issues.push("Outstanding unpaid loans");
+    }
+
+    // Credit Standing
+    if (credit_standing === "Good") {
+      strengths.push("Good credit standing");
+    } else if (credit_standing === "Bad") {
+      issues.push("Poor credit standing");
+    }
+
+    // Capacity to Pay
+    if (capacity_to_pay && capacity_to_pay > 0) {
+      strengths.push(`Demonstrated capacity to pay of ₱${capacity_to_pay.toFixed(2)}`);
+    }
+
+    // Existing Loan
+    if (existing_loan) {
+      issues.push("Has existing loan obligations");
+    } else {
+      strengths.push("No existing loan obligations");
+    }
+
+    // Combine findings
+    if (issues.length === 0 && strengths.length >= 4) {
+      findings.push("APPROVED - All criteria met");
+    } else if (issues.length <= 1 && strengths.length >= 2) {
+      findings.push("APPROVED WITH CONDITIONS - Minor concerns present");
+    } else if (issues.length >= 2 || strengths.length < 2) {
+      findings.push("FOR FURTHER EVALUATION - Requires additional review");
+    }
+
+    findings.push("\nStrengths:\n• " + strengths.join("\n• "));
+    if (issues.length > 0) {
+      findings.push("\nConcerns:\n• " + issues.join("\n• "));
+    }
+
+    return findings.join("\n");
+  },
 };

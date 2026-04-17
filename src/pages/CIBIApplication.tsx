@@ -93,13 +93,37 @@ export const CIBIApplicationPage: React.FC = () => {
     fetchApplications();
   }, []);
 
+  // Auto-generate investigation findings when relevant fields change
+  useEffect(() => {
+    const autoGenerateFindings = () => {
+      const findings = cibiApi.generateFindings({
+        monthly_income: formData.monthly_income,
+        estimated_monthly_expenses: formData.estimated_monthly_expenses,
+        existing_loan: formData.existing_loan,
+        previous_loans_status: formData.previous_loans_status,
+        credit_standing: formData.credit_standing,
+        capacity_to_pay: formData.capacity_to_pay,
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        investigation_findings: findings,
+      }));
+    };
+
+    // Only auto-generate if we have at least some data filled in
+    if (formData.monthly_income || formData.estimated_monthly_expenses || formData.previous_loans_status) {
+      autoGenerateFindings();
+    }
+  }, [formData.monthly_income, formData.estimated_monthly_expenses, formData.existing_loan, formData.previous_loans_status, formData.credit_standing, formData.capacity_to_pay]);
+
   const fetchItems = async () => {
     try {
-      const response = await fetch('/api/items');
-      const data = await response.json();
+      const data = await cibiApi.getModels();
       setItems(data);
     } catch (error) {
-      console.error('Error fetching items:', error);
+      console.error('Error fetching models:', error);
+      toast.error('Failed to load models');
     }
   };
 
@@ -663,14 +687,25 @@ export const CIBIApplicationPage: React.FC = () => {
                 Net Disposable Income: ₱{calculateNetDisposableIncome().toLocaleString(undefined, { maximumFractionDigits: 2 })}
               </p>
             </div>
-            <input
-              type="number"
-              name="capacity_to_pay"
-              placeholder="Capacity to Pay"
-              value={formData.capacity_to_pay || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="number"
+                name="capacity_to_pay"
+                placeholder="Capacity to Pay"
+                value={formData.capacity_to_pay || ''}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+              />
+              <select
+                name="payment_date"
+                defaultValue="15"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+              >
+                <option value="">Select Payment Date</option>
+                <option value="15">15th of Month</option>
+                <option value="30">30th of Month</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
