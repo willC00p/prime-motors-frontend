@@ -91,6 +91,16 @@ export const ROLE_PERMISSIONS = {
     accounts: false,
     allBranches: false,
   },
+  investigator: {
+    inventory: false,
+    sales: true,
+    purchasing: false,
+    finance: false,
+    management: false,
+    reports: false,
+    accounts: false,
+    allBranches: true,
+  },
 } as const;
 
 export const hasFullAccess = (role: UserRole): boolean => {

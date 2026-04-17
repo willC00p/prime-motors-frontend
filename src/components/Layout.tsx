@@ -2,7 +2,6 @@ import { NavLink, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { canManageAccounts } from '../utils/roleAccess';
-import type { UserRole } from '../types/auth';
 import {
   Menu as IconMenu,
   LayoutDashboard,
@@ -26,13 +25,8 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  const dashboardRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance', 'audit'];
-  const canAccessDashboard = user && dashboardRoles.includes(user.role as UserRole);
-
   const navItems = [
-    ...(canAccessDashboard 
-      ? [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }]
-      : []),
+    { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/inventory', label: 'Inventory', icon: Boxes },
     { to: '/reports', label: 'Reports', icon: FileSpreadsheet },
     { to: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
@@ -44,6 +38,9 @@ export default function Layout({ children }: LayoutProps) {
     { to: '/presentation', label: 'Presentation', icon: Monitor },
     ...(user && canManageAccounts(user.role) 
       ? [{ to: '/accounts', label: 'Account Management', icon: Users }]
+      : []),
+    ...(user && ['investigator', 'gm', 'ceo', 'nsm'].includes(user.role)
+      ? [{ to: '/cibi-applications', label: 'CI/BI Applications', icon: FileSpreadsheet }]
       : [])
   ];
 

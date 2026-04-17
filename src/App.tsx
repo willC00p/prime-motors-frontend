@@ -16,6 +16,7 @@ import LTORegistrationManagement from './pages/LTORegistrationManagement';
 import Reports from './pages/Reports';
 import Presentation from './pages/Presentation';
 import AccountManagement from './pages/AccountManagement';
+import CIBIApplication from './pages/CIBIApplication';
 import type { UserRole } from './types/auth';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
   const managementRoles: UserRole[] = ['gm', 'ceo', 'nsm'];
   const accountManagementRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance'];
   const purchasingRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'purchasing'];
+  const cibiRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'investigator'];
   // financeRoles removed — loan-payments route is accessible to all authenticated users now
   const dashboardRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance', 'audit'];
 
@@ -46,10 +48,16 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Index route - goes to Inventory for all authenticated users */}
-            <Route index element={<Inventory />} />
-            
-            {/* Dashboard routes - only for authorized roles */}
+            {/* Dashboard routes */}
+            <Route index element={
+              <ProtectedRoute 
+                allowedRoles={dashboardRoles}
+                permission="reports"
+                requiresAllBranches
+              >
+                <Dashboard />
+              </ProtectedRoute>
+            } />
             <Route path="dashboard" element={
               <ProtectedRoute 
                 allowedRoles={dashboardRoles}
@@ -164,6 +172,17 @@ function App() {
                   requiresAllBranches
                 >
                   <AccountManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="cibi-applications"
+              element={
+                <ProtectedRoute
+                  allowedRoles={cibiRoles}
+                  permission="sales"
+                >
+                  <CIBIApplication />
                 </ProtectedRoute>
               }
             />

@@ -6,7 +6,8 @@ export type UserRole =
   | 'accounting' 
   | 'finance' 
   | 'audit' 
-  | 'branch';
+  | 'branch'
+  | 'investigator';
 
 export interface User {
   id: number;
@@ -24,7 +25,7 @@ export interface AuthState {
 }
 
 export const hasFullAccess = (role: UserRole): boolean => {
-  return ['gm', 'ceo', 'nsm', 'purchasing', 'accounting', 'finance', 'audit'].includes(role);
+  return ['gm', 'ceo', 'nsm', 'purchasing', 'accounting', 'finance', 'audit', 'investigator'].includes(role);
 }
 
 export const hasInventoryAccess = (role: UserRole, userBranchId?: number, itemBranchId?: number): boolean => {
