@@ -14,7 +14,8 @@ import {
   CreditCard,
   BadgeCheck,
   LogOut,
-  Monitor
+  Monitor,
+  GitBranch
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -36,6 +37,9 @@ export default function Layout({ children }: LayoutProps) {
     { to: '/loan-payments', label: 'Loan Payments', icon: CreditCard },
     { to: '/lto-registration', label: 'LTO Registration', icon: BadgeCheck },
     { to: '/presentation', label: 'Presentation', icon: Monitor },
+    ...(user && ['branch', 'investigator', 'gm', 'ceo', 'nsm'].includes(user.role)
+      ? [{ to: '/leads', label: 'Leads Monitor', icon: GitBranch }]
+      : []),
     ...(user && canManageAccounts(user.role) 
       ? [{ to: '/accounts', label: 'Account Management', icon: Users }]
       : []),

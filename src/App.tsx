@@ -17,6 +17,7 @@ import Reports from './pages/Reports';
 import Presentation from './pages/Presentation';
 import AccountManagement from './pages/AccountManagement';
 import CIBIApplication from './pages/CIBIApplication';
+import LeadsPage from './pages/LeadsPage';
 import type { UserRole } from './types/auth';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
   const accountManagementRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance'];
   const purchasingRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'purchasing'];
   const cibiRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'investigator'];
+  const leadsRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'branch', 'investigator'];
   // financeRoles removed — loan-payments route is accessible to all authenticated users now
   const dashboardRoles: UserRole[] = ['gm', 'ceo', 'nsm', 'accounting', 'finance', 'audit'];
 
@@ -183,6 +185,17 @@ function App() {
                   permission="sales"
                 >
                   <CIBIApplication />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="leads"
+              element={
+                <ProtectedRoute
+                  allowedRoles={leadsRoles}
+                  permission="sales"
+                >
+                  <LeadsPage />
                 </ProtectedRoute>
               }
             />
