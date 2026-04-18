@@ -232,7 +232,7 @@ export const LeadsPage: React.FC = () => {
                         className="hover:bg-gray-50 cursor-pointer"
                         onClick={() => setExpandedId(isExpanded ? null : lead.id)}
                       >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900 hover:text-blue-600 underline" onClick={() => window.location.href = `/workflow/${lead.id}`}>
                           {lead.applicant_name}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
@@ -310,6 +310,13 @@ export const LeadsPage: React.FC = () => {
                                   </div>
                                 </div>
                               )}
+
+                              <button
+                                onClick={() => window.location.href = `/workflow/${lead.id}`}
+                                className="w-full mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                View Full Details
+                              </button>
                             </div>
                           </td>
                         </tr>

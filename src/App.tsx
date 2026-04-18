@@ -18,6 +18,7 @@ import Presentation from './pages/Presentation';
 import AccountManagement from './pages/AccountManagement';
 import CIBIApplication from './pages/CIBIApplication';
 import LeadsPage from './pages/LeadsPage';
+import WorkflowDetailPage from './pages/WorkflowDetailPage';
 import type { UserRole } from './types/auth';
 
 function App() {
@@ -196,6 +197,17 @@ function App() {
                   permission="sales"
                 >
                   <LeadsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="workflow/:id"
+              element={
+                <ProtectedRoute
+                  allowedRoles={leadsRoles}
+                  permission="sales"
+                >
+                  <WorkflowDetailPage />
                 </ProtectedRoute>
               }
             />
