@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, Filter, AlertCircle, Clock, CheckCircle, MapPin } from 'lucide-react';
+import { getLeads, getLeadsSummary, updateLeadStatus } from '../services/leadsApi';
 
 interface Lead {
   id: number;
@@ -73,16 +74,7 @@ export const LeadsPage: React.FC = () => {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20',
-        ...(search && { search }),
-        ...(filterStatus !== 'ALL' && { workflow_status: filterStatus }),
-      });
-      const response = await fetch(`/api/leads?${params}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const data = await getLeads(page, 20, filterStatus !== 'ALL' ? filterStatus : undefined, search);
       if (data.success) {
         setLeads(data.data);
         setTotalPages(data.pagination.pages);
@@ -96,10 +88,7 @@ export const LeadsPage: React.FC = () => {
 
   const fetchSummary = async () => {
     try {
-      const response = await fetch('/api/leads/summary', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const data = await getLeadsSummary();
       if (data.success) {
         setSummary(data.data);
       }
@@ -134,15 +123,7 @@ export const LeadsPage: React.FC = () => {
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     try {
-      const response = await fetch(`/api/leads/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ workflow_status: newStatus }),
-      });
-      const data = await response.json();
+      const data = await updateLeadStatus(id, { workflow_status: newStatus });
       if (data.success) {
         fetchLeads();
         fetchSummary();
