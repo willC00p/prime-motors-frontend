@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, FileText, AlertCircle, CheckCircle, Clock, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { getApplicationWithDetails } from '../services/workflowApi';
 
 interface WorkflowStage {
@@ -13,9 +14,11 @@ interface WorkflowStage {
 export const WorkflowDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const isBranchUser = user?.role === 'branch';
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -114,12 +117,14 @@ export const WorkflowDetailPage: React.FC = () => {
           >
             Requirements
           </button>
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`px-6 py-3 font-medium ${activeTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-          >
-            Approvals
-          </button>
+          {!isBranchUser && (
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`px-6 py-3 font-medium ${activeTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Approvals
+            </button>
+          )}
         </div>
 
         <div className="p-6">
