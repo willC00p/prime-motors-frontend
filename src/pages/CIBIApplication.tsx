@@ -363,14 +363,28 @@ export const CIBIApplicationPage: React.FC = () => {
                 ))}
               </select>
             </div>
-            <input
-              type="text"
-              name="valid_id"
-              placeholder="Valid ID (e.g., Driver's License)"
-              value={formData.valid_id || ''}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-            />
+            <select
+  name="valid_id"
+  value={formData.valid_id || ''}
+  onChange={handleInputChange}
+  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
+>
+  <option value="">Select Valid ID</option>
+  <option value="Philippine National ID (PhilSys)">Philippine National ID (PhilSys)</option>
+  <option value="Driver's License">Driver's License</option>
+  <option value="Passport">Passport</option>
+  <option value="UMID">UMID (SSS/GSIS)</option>
+  <option value="SSS ID">SSS ID</option>
+  <option value="GSIS ID">GSIS ID</option>
+  <option value="PRC ID">PRC ID</option>
+  <option value="Voter's ID">Voter's ID</option>
+  <option value="Postal ID">Postal ID</option>
+  <option value="TIN ID">TIN ID</option>
+  <option value="Barangay ID">Barangay ID</option>
+  
+  <option value="Senior Citizen ID">Senior Citizen ID</option>
+  <option value="PWD ID">PWD ID</option>
+</select>
             <input
               type="text"
               name="tin_sss"
