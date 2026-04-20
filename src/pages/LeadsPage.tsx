@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Search, Filter, AlertCircle, Clock, CheckCircle, MapPin } from 'lucide-react';
-import { getLeads, getLeadsSummary } from '../services/leadsApi';
+import { ChevronDown, Search, Filter, AlertCircle, Clock, CheckCircle, MapPin, Trash2 } from 'lucide-react';
+import { getLeads, getLeadsSummary, deleteLead } from '../services/leadsApi';
 
 interface Lead {
   id: number;
@@ -127,6 +127,26 @@ export const LeadsPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching summary:', error);
+    }
+  };
+
+  const handleDeleteLead = async (leadId: number, leadName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the application for ${leadName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteLead(leadId);
+      if (response.success) {
+        setExpandedId(null);
+        fetchLeads();
+        fetchSummary();
+      } else {
+        alert('Failed to delete lead: ' + (response.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      alert('Error deleting lead');
     }
   };
 
@@ -294,7 +314,7 @@ export const LeadsPage: React.FC = () => {
                         {isExpanded && (
                           <tr className="bg-gray-50 border-t-2 border-gray-200">
                             <td colSpan={7} className="px-6 py-4">
-                            <ExpandedLeadDetails lead={lead} navigate={navigate} />
+                            <ExpandedLeadDetails lead={lead} navigate={navigate} onDelete={handleDeleteLead} />
                             </td>
                           </tr>
                         )}
@@ -353,7 +373,7 @@ export const LeadsPage: React.FC = () => {
                     {/* Expanded Details on Mobile */}
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <ExpandedLeadDetails lead={lead} navigate={navigate} />
+                        <ExpandedLeadDetails lead={lead} navigate={navigate} onDelete={handleDeleteLead} />
                       </div>
                     )}
                   </div>
@@ -394,7 +414,8 @@ export const LeadsPage: React.FC = () => {
 const ExpandedLeadDetails: React.FC<{
   lead: Lead;
   navigate: ReturnType<typeof import('react-router-dom').useNavigate>;
-}> = ({ lead, navigate }) => {
+  onDelete: (leadId: number, leadName: string) => void;
+}> = ({ lead, navigate, onDelete }) => {
   const currentStageInfo = WORKFLOW_STAGES.find(s => s.id === lead.workflow_status);
   const completedStages = WORKFLOW_STAGES.filter(stage => {
     const stageIdx = WORKFLOW_STAGES.findIndex(s => s.id === stage.id);
@@ -452,6 +473,14 @@ const ExpandedLeadDetails: React.FC<{
         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm md:text-base"
       >
         View Details & Take Action
+      </button>
+
+      <button
+        onClick={() => onDelete(lead.id, lead.applicant_name)}
+        className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm md:text-base flex items-center justify-center gap-2"
+      >
+        <Trash2 size={16} />
+        Delete Application
       </button>
     </div>
   );

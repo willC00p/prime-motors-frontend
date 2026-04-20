@@ -59,3 +59,10 @@ export const checkCIBISLA = async () => {
     method: 'POST',
   });
 };
+
+// Delete lead
+export const deleteLead = async (id: number) => {
+  return fetchApi(`/api/leads/${id}`, {
+    method: 'DELETE',
+  });
+};
