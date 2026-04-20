@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Search, Filter, AlertCircle, Clock, CheckCircle, MapPin } from 'lucide-react';
 import { getLeads, getLeadsSummary, updateLeadStatus } from '../services/leadsApi';
 
@@ -51,6 +52,7 @@ const WORKFLOW_STAGES = [
 ];
 
 export const LeadsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,7 @@ export const LeadsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [slaCountdowns, setSlaCountdowns] = useState<Record<number, string>>({}); // Track SLA countdowns
 
   useEffect(() => {
     fetchLeads();
@@ -70,6 +73,36 @@ export const LeadsPage: React.FC = () => {
     }, 30000);
     return () => clearInterval(interval);
   }, [page, search, filterStatus]);
+
+  // Update SLA countdown every second
+  useEffect(() => {
+    const slaInterval = setInterval(() => {
+      updateSLACountdowns();
+    }, 1000);
+    return () => clearInterval(slaInterval);
+  }, [leads]);
+
+  const updateSLACountdowns = () => {
+    const countdowns: Record<number, string> = {};
+    leads.forEach((lead) => {
+      if (lead.workflow_status === 'CI_BI' && lead.updated_at) {
+        const updatedTime = new Date(lead.updated_at).getTime();
+        const slaDeadline = updatedTime + 24 * 60 * 60 * 1000; // 24 hours
+        const now = new Date().getTime();
+        const remaining = slaDeadline - now;
+
+        if (remaining > 0) {
+          const hours = Math.floor(remaining / (60 * 60 * 1000));
+          const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+          const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+          countdowns[lead.id] = `${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          countdowns[lead.id] = 'Expired';
+        }
+      }
+    });
+    setSlaCountdowns(countdowns);
+  };
 
   const fetchLeads = async () => {
     try {
@@ -111,10 +144,11 @@ export const LeadsPage: React.FC = () => {
       );
     }
     if (lead.workflow_status === 'CI_BI') {
+      const remaining = slaCountdowns[lead.id] || 'Calculating...';
       return (
         <div className="flex items-center gap-1 text-yellow-600 text-xs font-semibold">
           <Clock size={14} />
-          24-hour SLA in progress
+          {remaining}
         </div>
       );
     }
@@ -234,7 +268,7 @@ export const LeadsPage: React.FC = () => {
                           className="hover:bg-gray-50 cursor-pointer"
                           onClick={() => setExpandedId(isExpanded ? null : lead.id)}
                         >
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900 hover:text-blue-600 underline" onClick={() => window.location.href = `/workflow/${lead.id}`}>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900 hover:text-blue-600 underline cursor-pointer" onClick={() => navigate(`/workflow/${lead.id}`)}>
                             {lead.applicant_name}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">
@@ -272,7 +306,7 @@ export const LeadsPage: React.FC = () => {
                         {isExpanded && (
                           <tr className="bg-gray-50 border-t-2 border-gray-200">
                             <td colSpan={7} className="px-6 py-4">
-                              <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} />
+                            <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} navigate={navigate} />
                             </td>
                           </tr>
                         )}
@@ -300,8 +334,8 @@ export const LeadsPage: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-2">
                           <h3
-                            className="text-sm font-medium text-blue-600 underline"
-                            onClick={() => window.location.href = `/workflow/${lead.id}`}
+                            className="text-sm font-medium text-blue-600 underline cursor-pointer"
+                            onClick={() => navigate(`/workflow/${lead.id}`)}
                           >
                             {lead.applicant_name}
                           </h3>
@@ -331,7 +365,7 @@ export const LeadsPage: React.FC = () => {
                     {/* Expanded Details on Mobile */}
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} />
+                        <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} navigate={navigate} />
                       </div>
                     )}
                   </div>
@@ -372,7 +406,8 @@ export const LeadsPage: React.FC = () => {
 const ExpandedLeadDetails: React.FC<{
   lead: Lead;
   handleStatusUpdate: (id: number, status: string) => void;
-}> = ({ lead, handleStatusUpdate }) => (
+  navigate: ReturnType<typeof import('react-router-dom').useNavigate>;
+}> = ({ lead, handleStatusUpdate, navigate }) => (
   <div className="space-y-4">
     <div>
       <h4 className="font-semibold text-gray-900 mb-3">Workflow Timeline</h4>
@@ -415,7 +450,7 @@ const ExpandedLeadDetails: React.FC<{
     )}
 
     <button
-      onClick={() => window.location.href = `/workflow/${lead.id}`}
+      onClick={() => navigate(`/workflow/${lead.id}`)}
       className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm md:text-base"
     >
       View Full Details
