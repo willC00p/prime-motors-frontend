@@ -17,7 +17,7 @@ export const WorkflowDetailPage: React.FC = () => {
   const { user } = useAuth();
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('');
   const isBranchUser = user?.role === 'branch';
 
   useEffect(() => {
@@ -26,6 +26,28 @@ export const WorkflowDetailPage: React.FC = () => {
         setLoading(true);
         const data = await getApplicationWithDetails(parseInt(id!));
         setApplication(data);
+        
+        // Set activeTab based on workflow status
+        const status = data.workflow_status;
+        if (status === 'LEADS') {
+          setActiveTab('leads');
+        } else if (status === 'SUBMIT_REQS') {
+          setActiveTab('requirements');
+        } else if (status === 'CI_BI') {
+          setActiveTab('cibi');
+        } else if (status === 'CI_BI_RESULT') {
+          setActiveTab('approvals');
+        } else if (status === 'BRANCH_APPROVAL') {
+          setActiveTab('branch');
+        } else if (status === 'CLIENT_NOTIFICATION') {
+          setActiveTab('client');
+        } else if (status === 'UNIT_RELEASE') {
+          setActiveTab('unit');
+        } else if (status === 'SALES_ENCODING') {
+          setActiveTab('sales');
+        } else {
+          setActiveTab('overview');
+        }
       } catch (error) {
         console.error('Error fetching application:', error);
       } finally {
@@ -333,6 +355,8 @@ const CIBITab: React.FC<{ application: any; onUpdate: () => void }> = ({ applica
 
 const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [notes, setNotes] = useState('');
   const attachments = application.requirement_attachments || [];
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -357,6 +381,24 @@ const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleProceedToCI = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/leads/${application.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ workflow_status: 'CI_BI', notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      } else {
+        alert('Failed to proceed to CI/BI stage');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -387,6 +429,25 @@ const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({
           </div>
         )}
       </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea 
+          value={notes} 
+          onChange={(e) => setNotes(e.target.value)} 
+          rows={4} 
+          className="w-full border rounded px-3 py-2" 
+          placeholder="Add notes for CI/BI investigation..."
+        />
+      </div>
+
+      <button 
+        onClick={handleProceedToCI} 
+        disabled={submitting} 
+        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
+      >
+        {submitting ? 'Proceeding...' : 'Proceed to CI/BI Investigation'}
+      </button>
     </div>
   );
 };
