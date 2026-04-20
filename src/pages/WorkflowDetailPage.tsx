@@ -29,6 +29,8 @@ export const WorkflowDetailPage: React.FC = () => {
         
         // Set activeTab based on workflow status
         const status = data.workflow_status;
+        console.log('Application workflow_status:', status);
+        
         if (status === 'LEADS') {
           setActiveTab('leads');
         } else if (status === 'SUBMIT_REQS') {
@@ -221,6 +223,9 @@ export const WorkflowDetailPage: React.FC = () => {
           {activeTab === 'client' && <ClientNotificationTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'unit' && <UnitReleaseTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'sales' && <SalesEncodingTab application={application} onUpdate={() => window.location.reload()} />}
+          
+          {/* Fallback when tab is not set yet */}
+          {!activeTab && <div className="text-center text-gray-500 py-8">Loading action form...</div>}
         </div>
       </div>
     </div>
