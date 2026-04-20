@@ -286,35 +286,6 @@ const LeadsActionTab: React.FC<{ application: any; onUpdate: () => void }> = ({ 
   );
 };
 
-const OverviewTab: React.FC<{ application: any }> = ({ application }) => (
-  <div className="space-y-4">
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <p className="text-sm text-gray-600">Status</p>
-        <p className="font-medium text-lg">{application.workflow_status}</p>
-      </div>
-      <div>
-        <p className="text-sm text-gray-600">Created By</p>
-        <p className="font-medium">{application.creator?.name}</p>
-      </div>
-      <div>
-        <p className="text-sm text-gray-600">Assigned Investigator</p>
-        <p className="font-medium">{application.investigator?.name || 'Not assigned'}</p>
-      </div>
-      <div>
-        <p className="text-sm text-gray-600">Created</p>
-        <p className="font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
-      </div>
-    </div>
-    {application.notes && (
-      <div className="mt-6 p-4 bg-gray-50 rounded">
-        <p className="text-sm text-gray-600">Notes</p>
-        <p className="mt-2">{application.notes}</p>
-      </div>
-    )}
-  </div>
-);
-
 const CIBITab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
   const [status, setStatus] = useState(application.cibi_investigation_status || '');
   const [notes, setNotes] = useState(application.cibi_investigation_notes || '');
