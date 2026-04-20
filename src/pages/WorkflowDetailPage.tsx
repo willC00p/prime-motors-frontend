@@ -35,6 +35,8 @@ export const WorkflowDetailPage: React.FC = () => {
           setActiveTab('leads');
         } else if (status === 'SUBMIT_REQS') {
           setActiveTab('requirements');
+        } else if (status === 'PASS_REQUIREMENTS') {
+          setActiveTab('passrequirements');
         } else if (status === 'CI_BI') {
           setActiveTab('cibi');
         } else if (status === 'CI_BI_RESULT') {
@@ -66,7 +68,8 @@ export const WorkflowDetailPage: React.FC = () => {
   const stages: WorkflowStage[] = [
     { id: 'APPLICATION', label: 'Application', completed: true, current: false },
     { id: 'LEADS', label: 'Leads', completed: application.workflow_status !== 'APPLICATION', current: application.workflow_status === 'LEADS' },
-    { id: 'SUBMIT_REQS', label: 'Requirements', completed: ['CI_BI', 'CI_BI_RESULT', 'HEAD_OFFICE', 'BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'SUBMIT_REQS' },
+    { id: 'SUBMIT_REQS', label: 'Requirements', completed: ['PASS_REQUIREMENTS', 'CI_BI', 'CI_BI_RESULT', 'HEAD_OFFICE', 'BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'SUBMIT_REQS' },
+    { id: 'PASS_REQUIREMENTS', label: 'Requirements Passed', completed: ['CI_BI', 'CI_BI_RESULT', 'HEAD_OFFICE', 'BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'PASS_REQUIREMENTS' },
     { id: 'CI_BI', label: 'CI/BI Investigation', completed: ['CI_BI_RESULT', 'HEAD_OFFICE', 'BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'CI_BI' },
     { id: 'CI_BI_RESULT', label: 'CI/BI Result', completed: ['HEAD_OFFICE', 'BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'CI_BI_RESULT' },
     { id: 'HEAD_OFFICE', label: 'Head Office', completed: ['BRANCH_APPROVAL', 'CLIENT_NOTIFICATION', 'UNIT_RELEASE', 'SALES_ENCODING', 'COMPLETED'].includes(application.workflow_status), current: application.workflow_status === 'HEAD_OFFICE' },
@@ -152,6 +155,16 @@ export const WorkflowDetailPage: React.FC = () => {
             </button>
           )}
 
+          {/* Pass Requirements - Available at PASS_REQUIREMENTS stage */}
+          {application.workflow_status === 'PASS_REQUIREMENTS' && (
+            <button
+              onClick={() => setActiveTab('passrequirements')}
+              className={`px-3 md:px-6 py-2 md:py-3 text-xs md:text-base font-medium whitespace-nowrap ${activeTab === 'passrequirements' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Start CI/BI
+            </button>
+          )}
+
           {/* CI/BI Investigation - Available at CI_BI stage */}
           {application.workflow_status === 'CI_BI' && (
             <button
@@ -217,6 +230,7 @@ export const WorkflowDetailPage: React.FC = () => {
           {activeTab === 'overview' && <OverviewTab application={application} />}
           {activeTab === 'leads' && <LeadsActionTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'requirements' && <RequirementsTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'passrequirements' && <PassRequirementsTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'cibi' && <CIBITab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'approvals' && <ApprovalsTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'branch' && <BranchApprovalTab application={application} onUpdate={() => window.location.reload()} />}
@@ -452,6 +466,75 @@ const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({
         className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
       >
         {submitting ? 'Proceeding...' : 'Proceed to CI/BI Investigation'}
+      </button>
+    </div>
+  );
+};
+
+const PassRequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [notes, setNotes] = useState('');
+  const attachments = application.requirement_attachments || [];
+
+  const handleProceedToCI = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/leads/${application.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ workflow_status: 'CI_BI', notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      } else {
+        alert('Failed to proceed to CI/BI stage');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+        <h3 className="font-semibold text-green-800 mb-2">Requirements Verified ✓</h3>
+        <p className="text-sm text-green-700">All submitted requirements have been verified and approved. You can now proceed to CI/BI Investigation.</p>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-2">Uploaded Requirements</h3>
+        {attachments.length === 0 ? (
+          <p className="text-gray-600">No files uploaded</p>
+        ) : (
+          <div className="space-y-2">
+            {attachments.map((att: any) => (
+              <div key={att.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded">
+                <FileText size={18} />
+                <span>{att.file_name}</span>
+                <span className="ml-auto text-sm text-gray-600">{new Date(att.uploaded_at).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Additional Notes</label>
+        <textarea 
+          value={notes} 
+          onChange={(e) => setNotes(e.target.value)} 
+          rows={4} 
+          className="w-full border rounded px-3 py-2" 
+          placeholder="Any additional notes for CI/BI investigation..."
+        />
+      </div>
+
+      <button 
+        onClick={handleProceedToCI} 
+        disabled={submitting} 
+        className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 font-medium"
+      >
+        {submitting ? 'Starting CI/BI...' : 'Start CI/BI Investigation'}
       </button>
     </div>
   );
