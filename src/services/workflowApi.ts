@@ -29,7 +29,8 @@ export interface SalesEncodingPayload {
 
 // Get application with full workflow details
 export const getApplicationWithDetails = async (id: number) => {
-  return fetchApi(`/workflow/${id}`);
+  const response = await fetchApi(`/workflow/${id}`);
+  return response.data;
 };
 
 // Update CI/BI Investigation Status
