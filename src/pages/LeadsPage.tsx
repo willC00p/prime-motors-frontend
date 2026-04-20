@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Search, Filter, AlertCircle, Clock, CheckCircle, MapPin } from 'lucide-react';
-import { getLeads, getLeadsSummary, updateLeadStatus } from '../services/leadsApi';
+import { getLeads, getLeadsSummary } from '../services/leadsApi';
 
 interface Lead {
   id: number;
@@ -155,18 +155,6 @@ export const LeadsPage: React.FC = () => {
     return null;
   };
 
-  const handleStatusUpdate = async (id: number, newStatus: string) => {
-    try {
-      const data = await updateLeadStatus(id, { workflow_status: newStatus });
-      if (data.success) {
-        fetchLeads();
-        fetchSummary();
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
-  };
-
   return (
     <div className="space-y-4 md:space-y-6 p-3 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {/* Header */}
@@ -306,7 +294,7 @@ export const LeadsPage: React.FC = () => {
                         {isExpanded && (
                           <tr className="bg-gray-50 border-t-2 border-gray-200">
                             <td colSpan={7} className="px-6 py-4">
-                            <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} navigate={navigate} />
+                            <ExpandedLeadDetails lead={lead} navigate={navigate} />
                             </td>
                           </tr>
                         )}
@@ -365,7 +353,7 @@ export const LeadsPage: React.FC = () => {
                     {/* Expanded Details on Mobile */}
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <ExpandedLeadDetails lead={lead} handleStatusUpdate={handleStatusUpdate} navigate={navigate} />
+                        <ExpandedLeadDetails lead={lead} navigate={navigate} />
                       </div>
                     )}
                   </div>
@@ -402,60 +390,71 @@ export const LeadsPage: React.FC = () => {
   );
 };
 
-// Extracted component for expanded lead details to reduce code duplication
+// Extracted component for expanded lead details - READ-ONLY view
 const ExpandedLeadDetails: React.FC<{
   lead: Lead;
-  handleStatusUpdate: (id: number, status: string) => void;
   navigate: ReturnType<typeof import('react-router-dom').useNavigate>;
-}> = ({ lead, handleStatusUpdate, navigate }) => (
-  <div className="space-y-4">
-    <div>
-      <h4 className="font-semibold text-gray-900 mb-3">Workflow Timeline</h4>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
-        {WORKFLOW_STAGES.map((stage) => {
-          const isCurrentStage = lead.workflow_status === stage.id;
-          const isPastStage = WORKFLOW_STAGES.findIndex((s) => s.id === lead.workflow_status) > WORKFLOW_STAGES.findIndex((s) => s.id === stage.id);
-          return (
-            <button
-              key={stage.id}
-              onClick={() => handleStatusUpdate(lead.id, stage.id)}
-              className={`p-2 md:p-3 rounded-lg text-center text-xs md:text-sm font-medium transition-all ${
-                isCurrentStage
-                  ? `${stage.color} ${stage.textColor} border-2 border-current`
-                  : isPastStage
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-              }`}
-            >
-              {isPastStage && <CheckCircle size={14} className="inline mr-1" />}
-              {stage.label.split(' ').slice(0, 2).join('\n')}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-
-    {lead.cibi_applications.length > 0 && (
-      <div className="bg-white p-3 md:p-4 rounded border border-gray-200">
-        <h5 className="font-semibold text-gray-900 mb-2">CI/BI Details</h5>
-        <div className="text-sm text-gray-600 space-y-1">
-          <div>
-            <strong>Status:</strong> {lead.cibi_applications[0].status}
+}> = ({ lead, navigate }) => {
+  const currentStageInfo = WORKFLOW_STAGES.find(s => s.id === lead.workflow_status);
+  const completedStages = WORKFLOW_STAGES.filter(stage => {
+    const stageIdx = WORKFLOW_STAGES.findIndex(s => s.id === stage.id);
+    const currentIdx = WORKFLOW_STAGES.findIndex(s => s.id === lead.workflow_status);
+    return stageIdx < currentIdx;
+  });
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-3">Workflow Status</h4>
+        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${currentStageInfo?.color}`}>
+            <Clock size={24} className="text-blue-700" />
           </div>
           <div>
-            <strong>Recommendation:</strong> {lead.cibi_applications[0].system_recommendation}
+            <p className="text-sm text-gray-600">Current Stage</p>
+            <p className="text-lg font-semibold text-gray-900">{currentStageInfo?.label}</p>
+            {completedStages.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Completed {completedStages.length} of {WORKFLOW_STAGES.length} stages
+              </p>
+            )}
           </div>
         </div>
       </div>
-    )}
 
-    <button
-      onClick={() => navigate(`/workflow/${lead.id}`)}
-      className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm md:text-base"
-    >
-      View Full Details
-    </button>
-  </div>
-);
+      {/* Progress Bar */}
+      <div>
+        <h4 className="font-semibold text-gray-900 mb-2 text-sm">Progress</h4>
+        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-blue-600 transition-all"
+            style={{ width: `${(completedStages.length / WORKFLOW_STAGES.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {lead.cibi_applications.length > 0 && (
+        <div className="bg-white p-3 md:p-4 rounded border border-gray-200">
+          <h5 className="font-semibold text-gray-900 mb-2">CI/BI Details</h5>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>
+              <strong>Status:</strong> {lead.cibi_applications[0].status}
+            </div>
+            <div>
+              <strong>Recommendation:</strong> {lead.cibi_applications[0].system_recommendation}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => navigate(`/workflow/${lead.id}`)}
+        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm md:text-base"
+      >
+        View Details & Take Action
+      </button>
+    </div>
+  );
+};
 
 export default LeadsPage;
