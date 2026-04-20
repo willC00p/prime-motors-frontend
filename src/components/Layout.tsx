@@ -120,8 +120,8 @@ export default function Layout({ children }: LayoutProps) {
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-64 bg-white/95 neon-bg shadow-lg">
-            <div className="h-16 flex items-center justify-between px-3 border-b border-gray-100">
+          <aside className="absolute left-0 top-0 h-full w-64 bg-white/95 neon-bg shadow-lg flex flex-col">
+            <div className="h-16 flex items-center justify-between px-3 border-b border-gray-100 flex-shrink-0">
               <Link to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
                 <span className="text-xl font-extrabold neon-text">Prime Motors</span>
               </Link>
@@ -132,8 +132,10 @@ export default function Layout({ children }: LayoutProps) {
                 <X size={20} />
               </button>
             </div>
-            <NavContent />
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 p-3">
+            <div className="flex-1 overflow-y-auto">
+              <NavContent />
+            </div>
+            <div className="border-t border-gray-100 p-3 flex-shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-600">
                 <div>
                   <div className="font-medium">{user?.name}</div>
