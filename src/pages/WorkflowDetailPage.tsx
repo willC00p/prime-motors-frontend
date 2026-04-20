@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, AlertCircle, CheckCircle, Clock, User } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getApplicationWithDetails } from '../services/workflowApi';
 
@@ -96,44 +96,192 @@ export const WorkflowDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Only show tabs relevant to current workflow stage */}
       <div className="bg-white rounded-lg shadow">
-        <div className="flex border-b">
+        <div className="flex border-b overflow-x-auto">
+          {/* Overview always available */}
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium ${activeTab === 'overview' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'overview' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
           >
             Overview
           </button>
-          <button
-            onClick={() => setActiveTab('cibi')}
-            className={`px-6 py-3 font-medium ${activeTab === 'cibi' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-          >
-            CI/BI Investigation
-          </button>
-          <button
-            onClick={() => setActiveTab('requirements')}
-            className={`px-6 py-3 font-medium ${activeTab === 'requirements' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-          >
-            Requirements
-          </button>
-          {!isBranchUser && (
+
+          {/* Leads Stage - Proceed to submit requirements */}
+          {application.workflow_status === 'LEADS' && (
+            <button
+              onClick={() => setActiveTab('leads')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'leads' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Proceed to Requirements
+            </button>
+          )}
+
+          {/* Requirements - Available at SUBMIT_REQS stage */}
+          {application.workflow_status === 'SUBMIT_REQS' && (
+            <button
+              onClick={() => setActiveTab('requirements')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'requirements' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Requirements
+            </button>
+          )}
+
+          {/* CI/BI Investigation - Available at CI_BI stage */}
+          {application.workflow_status === 'CI_BI' && (
+            <button
+              onClick={() => setActiveTab('cibi')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'cibi' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              CI/BI Investigation
+            </button>
+          )}
+
+          {/* Head Office Approval - Available at CI_BI_RESULT stage for NSM/CEO/GM */}
+          {application.workflow_status === 'CI_BI_RESULT' && !isBranchUser && (
             <button
               onClick={() => setActiveTab('approvals')}
-              className={`px-6 py-3 font-medium ${activeTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
             >
-              Approvals
+              Head Office Approval
+            </button>
+          )}
+
+          {/* Branch Approval - Available at BRANCH_APPROVAL stage */}
+          {application.workflow_status === 'BRANCH_APPROVAL' && (
+            <button
+              onClick={() => setActiveTab('branch')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'branch' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Branch Approval
+            </button>
+          )}
+
+          {/* Client Notification - Available at CLIENT_NOTIFICATION stage */}
+          {application.workflow_status === 'CLIENT_NOTIFICATION' && (
+            <button
+              onClick={() => setActiveTab('client')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'client' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Client Notification
+            </button>
+          )}
+
+          {/* Unit Release - Available at UNIT_RELEASE stage */}
+          {application.workflow_status === 'UNIT_RELEASE' && (
+            <button
+              onClick={() => setActiveTab('unit')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'unit' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Unit Release
+            </button>
+          )}
+
+          {/* Sales Encoding - Available at SALES_ENCODING stage */}
+          {application.workflow_status === 'SALES_ENCODING' && (
+            <button
+              onClick={() => setActiveTab('sales')}
+              className={`px-6 py-3 font-medium whitespace-nowrap ${activeTab === 'sales' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            >
+              Sales Encoding
             </button>
           )}
         </div>
 
         <div className="p-6">
           {activeTab === 'overview' && <OverviewTab application={application} />}
-          {activeTab === 'cibi' && <CIBITab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'leads' && <LeadsActionTab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'requirements' && <RequirementsTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'cibi' && <CIBITab application={application} onUpdate={() => window.location.reload()} />}
           {activeTab === 'approvals' && <ApprovalsTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'branch' && <BranchApprovalTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'client' && <ClientNotificationTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'unit' && <UnitReleaseTab application={application} onUpdate={() => window.location.reload()} />}
+          {activeTab === 'sales' && <SalesEncodingTab application={application} onUpdate={() => window.location.reload()} />}
         </div>
       </div>
+    </div>
+  );
+};
+
+const OverviewTab: React.FC<{ application: any }> = ({ application }) => (
+  <div className="space-y-4">
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <p className="text-sm text-gray-600">Status</p>
+        <p className="font-medium text-lg">{application.workflow_status}</p>
+      </div>
+      <div>
+        <p className="text-sm text-gray-600">Created By</p>
+        <p className="font-medium">{application.creator?.name}</p>
+      </div>
+      <div>
+        <p className="text-sm text-gray-600">Assigned Investigator</p>
+        <p className="font-medium">{application.investigator?.name || 'Not assigned'}</p>
+      </div>
+      <div>
+        <p className="text-sm text-gray-600">Created</p>
+        <p className="font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+      </div>
+    </div>
+    {application.notes && (
+      <div className="mt-6 p-4 bg-gray-50 rounded">
+        <p className="text-sm text-gray-600">Notes</p>
+        <p className="mt-2">{application.notes}</p>
+      </div>
+    )}
+  </div>
+);
+
+const LeadsActionTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleProceed = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/proceed-to-requirements`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      } else {
+        alert('Error proceeding to requirements');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error proceeding to requirements');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded">
+        <p className="text-sm text-blue-800">
+          Click "Proceed" to move this application to the Requirements submission stage.
+        </p>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes (Optional)</label>
+        <textarea 
+          value={notes} 
+          onChange={(e) => setNotes(e.target.value)} 
+          rows={3} 
+          className="w-full border rounded px-3 py-2" 
+          placeholder="Add any notes before proceeding..."
+        />
+      </div>
+      <button 
+        onClick={handleProceed} 
+        disabled={submitting} 
+        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 font-medium"
+      >
+        {submitting ? 'Proceeding...' : 'Proceed to Requirements'}
+      </button>
     </div>
   );
 };
@@ -212,8 +360,8 @@ const CIBITab: React.FC<{ application: any; onUpdate: () => void }> = ({ applica
 };
 
 const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
-  const [attachments, setAttachments] = useState(application.requirement_attachments || []);
   const [uploading, setUploading] = useState(false);
+  const attachments = application.requirement_attachments || [];
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -221,7 +369,6 @@ const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({
 
     setUploading(true);
     try {
-      // Here you'd upload to a file storage service first, then create the attachment record
       const response = await fetch(`/api/workflow/${application.id}/attachments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
@@ -272,40 +419,223 @@ const RequirementsTab: React.FC<{ application: any; onUpdate: () => void }> = ({
   );
 };
 
-const ApprovalsTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => (
-  <div className="space-y-6">
-    {/* Head Office Approval */}
-    <div className="border rounded-lg p-4">
-      <h3 className="font-semibold flex items-center gap-2 mb-3">
-        <User size={18} />
-        Head Office Approval
-      </h3>
-      {application.head_office_approver ? (
-        <div className="space-y-2">
-          <p><span className="text-gray-600">Approved by:</span> <span className="font-medium">{application.head_office_approver.name}</span></p>
-          <p><span className="text-gray-600">Status:</span> <span className="font-medium">{application.head_office_approved ? 'Approved' : 'Disapproved'}</span></p>
-          {application.head_office_notes && <p><span className="text-gray-600">Notes:</span> {application.head_office_notes}</p>}
-        </div>
-      ) : (
-        <p className="text-gray-600">Pending approval</p>
-      )}
-    </div>
+const ApprovalsTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [approved, setApproved] = useState(application.head_office_approved !== null ? application.head_office_approved : true);
+  const [notes, setNotes] = useState(application.head_office_notes || '');
+  const [submitting, setSubmitting] = useState(false);
 
-    {/* Branch Approval */}
-    {application.branch_approver && (
-      <div className="border rounded-lg p-4">
-        <h3 className="font-semibold flex items-center gap-2 mb-3">
-          <User size={18} />
-          Branch Approval
-        </h3>
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/head-office-approval`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ approved, notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Decision</label>
         <div className="space-y-2">
-          <p><span className="text-gray-600">Approved by:</span> <span className="font-medium">{application.branch_approver.name}</span></p>
-          <p><span className="text-gray-600">Status:</span> <span className="font-medium">{application.branch_status}</span></p>
-          {application.branch_notes && <p><span className="text-gray-600">Notes:</span> {application.branch_notes}</p>}
+          <label className="flex items-center">
+            <input type="radio" value="true" checked={approved === true} onChange={(e) => setApproved(e.target.value === 'true')} className="mr-2" />
+            <span>Approve</span>
+          </label>
+          <label className="flex items-center">
+            <input type="radio" value="false" checked={approved === false} onChange={(e) => setApproved(e.target.value === 'true')} className="mr-2" />
+            <span>Disapprove</span>
+          </label>
         </div>
       </div>
-    )}
-  </div>
-);
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} className="w-full border rounded px-3 py-2" placeholder="Add approval notes..." />
+      </div>
+      <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        {submitting ? 'Submitting...' : 'Submit Approval'}
+      </button>
+    </div>
+  );
+};
+
+const BranchApprovalTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [status, setStatus] = useState(application.branch_status || '');
+  const [notes, setNotes] = useState(application.branch_notes || '');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/branch-approval`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Branch Status</label>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded px-3 py-2">
+          <option value="">Select status...</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} className="w-full border rounded px-3 py-2" />
+      </div>
+      <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        {submitting ? 'Submitting...' : 'Submit'}
+      </button>
+    </div>
+  );
+};
+
+const ClientNotificationTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [status, setStatus] = useState(application.client_notification_status || '');
+  const [notes, setNotes] = useState(application.client_notification_notes || '');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/client-notification`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Notification Status</label>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded px-3 py-2">
+          <option value="">Select status...</option>
+          <option value="PENDING">Pending</option>
+          <option value="NOTIFIED">Notified</option>
+          <option value="CONFIRMED">Confirmed</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} className="w-full border rounded px-3 py-2" />
+      </div>
+      <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        {submitting ? 'Submitting...' : 'Submit'}
+      </button>
+    </div>
+  );
+};
+
+const UnitReleaseTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [status, setStatus] = useState(application.unit_release_status || '');
+  const [notes, setNotes] = useState(application.unit_release_notes || '');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/unit-release`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Release Status</label>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded px-3 py-2">
+          <option value="">Select status...</option>
+          <option value="PENDING">Pending</option>
+          <option value="RELEASED">Released</option>
+          <option value="ASSIGNED">Assigned</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} className="w-full border rounded px-3 py-2" />
+      </div>
+      <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        {submitting ? 'Submitting...' : 'Submit'}
+      </button>
+    </div>
+  );
+};
+
+const SalesEncodingTab: React.FC<{ application: any; onUpdate: () => void }> = ({ application, onUpdate }) => {
+  const [status, setStatus] = useState(application.sales_data?.status || '');
+  const [notes, setNotes] = useState(application.sales_data?.notes || '');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/workflow/${application.id}/sales-encoding`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+        body: JSON.stringify({ status, notes }),
+      });
+      if (response.ok) {
+        onUpdate();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Sales Status</label>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded px-3 py-2">
+          <option value="">Select status...</option>
+          <option value="PENDING">Pending</option>
+          <option value="ENCODED">Encoded</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Notes</label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={5} className="w-full border rounded px-3 py-2" />
+      </div>
+      <button onClick={handleSubmit} disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+        {submitting ? 'Submitting...' : 'Complete'}
+      </button>
+    </div>
+  );
+};
 
 export default WorkflowDetailPage;
