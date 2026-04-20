@@ -457,3 +457,5 @@ const ExpandedLeadDetails: React.FC<{
     </button>
   </div>
 );
+
+export default LeadsPage;
