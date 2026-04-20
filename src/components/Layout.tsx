@@ -80,10 +80,10 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row">
       {/* Desktop Sidebar - Hidden on mobile */}
       <aside
-        className="hidden md:block fixed md:relative left-0 top-0 h-full bg-white/95 border-r border-gray-100 neon-bg transition-all duration-200"
+        className="hidden md:flex md:flex-col fixed md:relative left-0 top-0 h-full bg-white/95 border-r border-gray-100 neon-bg transition-all duration-200"
         style={{ width: desktopSidebarCollapsed ? '72px' : '240px' }}
       >
-        <div className="h-16 flex items-center justify-between px-3 border-b border-gray-100">
+        <div className="h-16 flex items-center justify-between px-3 border-b border-gray-100 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
             <span className={`text-xl font-extrabold neon-text ${desktopSidebarCollapsed ? 'hidden' : ''}`}>
               Prime Motors
@@ -97,10 +97,10 @@ export default function Layout({ children }: LayoutProps) {
             <IconMenu size={18} />
           </button>
         </div>
-        <div className={desktopSidebarCollapsed ? 'hidden' : ''}>
+        <div className={`flex-1 overflow-y-auto ${desktopSidebarCollapsed ? 'hidden' : ''}`}>
           <NavContent />
         </div>
-        <div className={`absolute bottom-0 left-0 right-0 border-t border-gray-100 p-3 ${desktopSidebarCollapsed ? 'hidden' : ''}`}>
+        <div className={`border-t border-gray-100 p-3 flex-shrink-0 ${desktopSidebarCollapsed ? 'hidden' : ''}`}>
           <div className="flex items-center justify-between text-xs text-gray-600">
             <div>
               <div className="font-medium">{user?.name}</div>
